@@ -31,8 +31,6 @@ public class BankUNFPotionsNode implements ExecutableNode {
         Bank bank = hostScriptRefence.getBank();
         Inventory inv = hostScriptRefence.getInventory();
 
-
-
         if(bank.open()){
             if(!(inv.contains(CLEAN_HERB) && inv.contains(VIAL_OF_WATER))){
                 bank.depositAll();

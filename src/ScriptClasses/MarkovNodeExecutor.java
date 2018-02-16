@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class GraphBasedNodeExecutor {
+public class MarkovNodeExecutor {
     private class NodeEdge {
         ExecutableNode u; //source node
         ExecutableNode v; //edge to some other node
@@ -23,7 +23,7 @@ public class GraphBasedNodeExecutor {
     private HashMap<ExecutableNode, LinkedList<NodeEdge>> adjMap; //think of this as an adjacency list
     private ExecutableNode current; //the current node to execute inside onLoop
 
-    public GraphBasedNodeExecutor(ExecutableNode startingNode){
+    public MarkovNodeExecutor(ExecutableNode startingNode){
         adjMap = new HashMap<>();
         current = startingNode;
     }

@@ -4,11 +4,14 @@ import ScriptClasses.Statics;
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.api.Mouse;
 import org.osbot.rs07.api.Widgets;
+import org.osbot.rs07.api.model.Entity;
 import org.osbot.rs07.api.model.Item;
+import org.osbot.rs07.input.mouse.RectangleDestination;
 import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
+import java.awt.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static ScriptClasses.Statics.*;
@@ -20,6 +23,8 @@ public class CreateUNFPotionsNode implements ExecutableNode{
     private static final String VIAL = "Vial";
     private static final String WEED = "weed";
     private static final String TOADFLAX = "flax";
+
+    private static final Rectangle makeBounds = new Rectangle(212, 395, 95, 65);
 
     private Script hostScriptRefence;
     private static ExecutableNode singleton;
@@ -42,6 +47,9 @@ public class CreateUNFPotionsNode implements ExecutableNode{
                 return (int) Statics.randomNormalDist(5000, 2000);
             }
         }
+        else{
+            MethodProvider.sleep(3000);
+        }
         return 0;
     }
 
@@ -54,17 +62,25 @@ public class CreateUNFPotionsNode implements ExecutableNode{
             Item[] items = inv.getItems();
 
             if (inv.interact(itemSlotInteract, USE)) {
-                MethodProvider.sleep(Statics.randomNormalDist(500, 100));
-                if (inv.getSelectedItemName().contains(WEED) || inv.getSelectedItemName().contains(TOADFLAX)) {
-                    int otherItemSlot = findCloseInvSlot(true, itemSlotInteract, items);
-                    if(otherItemSlot != -1){
-                        return inv.interact(otherItemSlot, USE);
+                new ConditionalSleep(1000) {
+                    @Override
+                    public boolean condition() throws InterruptedException {
+                        return inv.isItemSelected();
                     }
+                }.sleep();
 
-                } else if (inv.getSelectedItemName().contains(VIAL)) {
-                    int otherItemSlot = findCloseInvSlot(false, itemSlotInteract, items);
-                    if(otherItemSlot != -1){
-                        return inv.interact(otherItemSlot, USE);
+                if(inv.isItemSelected()){
+                    if (inv.getSelectedItemName().contains(WEED) || inv.getSelectedItemName().contains(TOADFLAX)) { //temp hard code for now
+                        int otherItemSlot = getOtherItemInvSlot(true, itemSlotInteract, items);
+                        if(otherItemSlot != -1){ //-1 means failure to find slot
+                            return inv.interact(otherItemSlot, USE);
+                        }
+
+                    } else if (inv.getSelectedItemName().contains(VIAL)) {
+                        int otherItemSlot = getOtherItemInvSlot(false, itemSlotInteract, items);
+                        if(otherItemSlot != -1){
+                            return inv.interact(otherItemSlot, USE);
+                        }
                     }
                 }
             }
@@ -73,7 +89,7 @@ public class CreateUNFPotionsNode implements ExecutableNode{
     }
 
     //randomly choose a close inv slot to interact with
-    private int findCloseInvSlot(boolean herbSelected, int itemSlotInteract, Item[] items){
+    private int getOtherItemInvSlot(boolean herbSelected, int itemSlotInteract, Item[] items){
         int i = itemSlotInteract; //for searching forward
         int j = itemSlotInteract; // " " backwards
         int deferSelectionCount = 0;
@@ -127,8 +143,9 @@ public class CreateUNFPotionsNode implements ExecutableNode{
 
     private boolean interactMakePotsWidget(){
         Widgets widget = hostScriptRefence.getWidgets();
-        Inventory inv = hostScriptRefence.getInventory();
         Mouse mouse = hostScriptRefence.getMouse();
+        //hover over make pots widget
+        mouse.move(new RectangleDestination(hostScriptRefence.getBot(), makeBounds));
         //wait until make all appears
         new ConditionalSleep(5000){
             @Override
@@ -139,20 +156,32 @@ public class CreateUNFPotionsNode implements ExecutableNode{
 
         if(widget.isVisible(MAKE_UNF_POTION_PARENT_ID, MAKE_UNF_POTION_CHILD_ID)){
             if(widget.interact(MAKE_UNF_POTION_PARENT_ID, MAKE_UNF_POTION_CHILD_ID, "Make")){
-                mouse.moveOutsideScreen();
-                final boolean[] successful = {false};
-                //wait until all potions are finished
-                new ConditionalSleep(10000) {
-                    @Override
-                    public boolean condition() throws InterruptedException {
-                        successful[0] = !inv.contains(VIAL_OF_WATER) || !inv.contains(CLEAN_HERB);
-                        return successful[0];
-                    }
-                }.sleep();
-                return successful[0];
+                return waitUntilPotionsMade();
             }
         }
         return false;
+
+    }
+
+    private boolean waitUntilPotionsMade(){
+        Mouse mouse = hostScriptRefence.getMouse();
+        Inventory inv = hostScriptRefence.getInventory();
+        boolean moveMouseOutsideScreen = ThreadLocalRandom.current().nextBoolean();
+        if(moveMouseOutsideScreen){
+            mouse.moveOutsideScreen();
+        }
+
+
+        final boolean[] successful = {false};
+        //wait until all potions are finished
+        new ConditionalSleep(10000) {
+            @Override
+            public boolean condition() throws InterruptedException {
+                successful[0] = !inv.contains(VIAL_OF_WATER) || !inv.contains(CLEAN_HERB);
+                return successful[0];
+            }
+        }.sleep();
+        return successful[0];
 
     }
 }
