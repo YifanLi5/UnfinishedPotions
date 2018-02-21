@@ -1,19 +1,24 @@
 package ScriptClasses;
 
-import Nodes.BankingNodes.*;
+import Nodes.BankingNodes.HerbFirstThreeStepWithdraw;
+import Nodes.BankingNodes.HerbFirstWithdraw;
+import Nodes.BankingNodes.VialFirstThreeStepWithdraw;
+import Nodes.BankingNodes.VialFirstWithdraw;
 import Nodes.CreationNodes.HoverBank;
 import Nodes.CreationNodes.MouseOffscreen;
 import Nodes.ExecutableNode;
-import Nodes.GEBuyNode;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.script.ScriptManifest;
 
 import java.awt.*;
 
-@ScriptManifest(author = "PayPalMeRSGP", name = "test1", info = "goldfarming unf potion mater", version = 0.1, logo = "")
+import static ScriptClasses.MainScript.BUILD_NUM;
+import static ScriptClasses.MainScript.SCRIPT_NAME;
+
+@ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
 public class MainScript extends Script{
     static final String SCRIPT_NAME = "UNF Potions";
-    static final int BUILD_NUM = 1;
+    static final int BUILD_NUM = 4;
 
     MarkovNodeExecutor executor;
     @Override
@@ -32,27 +37,27 @@ public class MainScript extends Script{
 
         executor = new MarkovNodeExecutor(herbFirst);
 
-        executor.addEdgeToNode(herbFirst, hover, 50);
-        executor.addEdgeToNode(herbFirst, offscreen, 50);
+        executor.addEdgeToNode(herbFirst, hover, 30);
+        executor.addEdgeToNode(herbFirst, offscreen, 70);
 
-        executor.addEdgeToNode(herbFirst3Step, hover, 50);
-        executor.addEdgeToNode(herbFirst3Step, offscreen, 50);
+        executor.addEdgeToNode(herbFirst3Step, hover, 30);
+        executor.addEdgeToNode(herbFirst3Step, offscreen, 70);
 
-        executor.addEdgeToNode(vialFirst, hover, 50);
-        executor.addEdgeToNode(vialFirst, offscreen, 50);
+        executor.addEdgeToNode(vialFirst, hover, 30);
+        executor.addEdgeToNode(vialFirst, offscreen, 70);
 
-        executor.addEdgeToNode(vialFirst3Step, hover, 50);
-        executor.addEdgeToNode(vialFirst3Step, offscreen, 50);
+        executor.addEdgeToNode(vialFirst3Step, hover, 30);
+        executor.addEdgeToNode(vialFirst3Step, offscreen, 70);
 
-        executor.addEdgeToNode(hover, herbFirst, 40);
-        executor.addEdgeToNode(hover, vialFirst, 40);
-        executor.addEdgeToNode(hover, herbFirst3Step, 10);
-        executor.addEdgeToNode(hover, vialFirst3Step, 10);
+        executor.addEdgeToNode(hover, herbFirst, 45);
+        executor.addEdgeToNode(hover, vialFirst, 45);
+        executor.addEdgeToNode(hover, herbFirst3Step, 5);
+        executor.addEdgeToNode(hover, vialFirst3Step, 5);
 
-        executor.addEdgeToNode(offscreen, herbFirst, 40);
-        executor.addEdgeToNode(offscreen, vialFirst, 40);
-        executor.addEdgeToNode(offscreen, herbFirst3Step, 10);
-        executor.addEdgeToNode(offscreen, vialFirst3Step, 10);
+        executor.addEdgeToNode(offscreen, herbFirst, 45);
+        executor.addEdgeToNode(offscreen, vialFirst, 45);
+        executor.addEdgeToNode(offscreen, herbFirst3Step, 5);
+        executor.addEdgeToNode(offscreen, vialFirst3Step, 5);
 
     }
 

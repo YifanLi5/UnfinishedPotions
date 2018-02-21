@@ -2,7 +2,6 @@ package Nodes.CreationNodes;
 
 import Nodes.ExecutableNode;
 import ScriptClasses.Statics;
-import com.sun.xml.internal.org.jvnet.mimepull.CleanUpExecutorFactory;
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.api.Mouse;
 import org.osbot.rs07.api.Widgets;
@@ -71,7 +70,7 @@ abstract class AbstractCreationNode implements ExecutableNode {
 
         if(inv.contains(CLEAN_HERB) && inv.contains(VIAL_OF_WATER)){
             Item[] items = inv.getItems();
-            int slot1 = (int) Statics.randomNormalDist(14,5);
+            int slot1 = (int) Statics.randomNormalDist(14,2);
             int slot2;
             if(items[slot1].getId() == VIAL_OF_WATER){
                 slot2 = searchForOtherItemInvSlot(CLEAN_HERB, slot1, items);
@@ -115,7 +114,7 @@ abstract class AbstractCreationNode implements ExecutableNode {
     private int searchForOtherItemInvSlot(int idToSearch, int itemSlotInteract, Item[] items){
         int deferSelectionCount = 0;
         for(int i = itemSlotInteract; i < items.length; i++){
-            if(items[i].getId() == idToSearch){
+            if(items[i] != null && items[i].getId() == idToSearch){
                 boolean selectThisSlot = ThreadLocalRandom.current().nextBoolean();
                 if(selectThisSlot || deferSelectionCount > 3){
                     return i;
@@ -125,7 +124,7 @@ abstract class AbstractCreationNode implements ExecutableNode {
         }
 
         for(int i = itemSlotInteract; i >= 0; i--){
-            if(items[i].getId() == idToSearch){
+            if(items[i] != null && items[i].getId() == idToSearch){
                 boolean selectThisSlot = ThreadLocalRandom.current().nextBoolean();
                 if(selectThisSlot || deferSelectionCount > 3){
                     return i;

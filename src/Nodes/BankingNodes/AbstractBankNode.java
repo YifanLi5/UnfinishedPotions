@@ -34,11 +34,14 @@ abstract class AbstractBankNode implements ExecutableNode {
         if(bank.open()) {
             MethodProvider.sleep(500);
             bank.depositAll();
-            if (bank.contains(CLEAN_HERB) && bank.contains(VIAL_OF_WATER)) {
+            boolean debug1 = bank.contains(CLEAN_HERB);
+            boolean debug2 = bank.contains(VIAL_OF_WATER);
+            if (debug1 && debug2) {
                 withdrawOrder();
                 return true;
             }
             else{
+                hostScriptRefence.log("herb: " + debug1 + " vial: " + debug2);
                 hostScriptRefence.log("ran out of supplies stopping script, TODO: rebuy");
                 hostScriptRefence.stop(false);
             }

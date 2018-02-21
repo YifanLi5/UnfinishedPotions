@@ -29,7 +29,7 @@ public class HerbFirstThreeStepWithdraw extends AbstractBankNode{
         Bank bank = hostScriptRefence.getBank();
         bank.withdraw(CLEAN_HERB, Bank.WITHDRAW_10);
         bank.withdraw(VIAL_OF_WATER, 14);
-        MethodProvider.sleep(randomNormalDist(750,150));
+        MethodProvider.sleep(randomNormalDist(1500,250));
         bank.withdrawAll(CLEAN_HERB);
     }
 }
