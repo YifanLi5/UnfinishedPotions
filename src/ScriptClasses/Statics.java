@@ -4,7 +4,7 @@ import java.util.Random;
 
 public class Statics {
 
-    public static final int CLEAN_HERB = 2998; //ranarr = 257, toadflax = 2998
+    public static final int CLEAN_HERB = 261; //ranarr = 257, toadflax = 2998, avantoe = 261
     public static final int VIAL_OF_WATER = 227;
     public static final int UNF_POTION = 99;
 

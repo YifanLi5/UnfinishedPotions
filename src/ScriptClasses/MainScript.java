@@ -17,8 +17,8 @@ import static ScriptClasses.MainScript.SCRIPT_NAME;
 
 @ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
 public class MainScript extends Script{
-    static final String SCRIPT_NAME = "UNF Potions";
-    static final int BUILD_NUM = 4;
+    static final String SCRIPT_NAME = "UNF";
+    static final int BUILD_NUM = 0;
 
     MarkovNodeExecutor executor;
     @Override
