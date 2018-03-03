@@ -1,6 +1,7 @@
 package Nodes.BankingNodes;
 
 import Nodes.ExecutableNode;
+import ScriptClasses.Statics;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.script.MethodProvider;
@@ -32,7 +33,7 @@ abstract class AbstractBankNode implements ExecutableNode {
         Bank bank = hostScriptRefence.getBank();
         Inventory inv = hostScriptRefence.getInventory();
         if(bank.open()) {
-            MethodProvider.sleep(500);
+            MethodProvider.sleep(Statics.randomNormalDist(500,100));
             bank.depositAll();
             boolean debug1 = bank.contains(CLEAN_HERB);
             boolean debug2 = bank.contains(VIAL_OF_WATER);

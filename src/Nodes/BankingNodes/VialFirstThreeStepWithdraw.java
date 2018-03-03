@@ -32,6 +32,7 @@ public class VialFirstThreeStepWithdraw extends AbstractBankNode {
     void withdrawOrder() throws InterruptedException {
         Bank bank = hostScriptRefence.getBank();
         bank.withdraw(VIAL_OF_WATER, Bank.WITHDRAW_10);
+        MethodProvider.sleep(randomNormalDist(300,100));
         bank.withdraw(CLEAN_HERB, 14);
         MethodProvider.sleep(randomNormalDist(1500,250));
         bank.withdrawAll(VIAL_OF_WATER);

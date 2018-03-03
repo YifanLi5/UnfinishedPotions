@@ -85,7 +85,7 @@ abstract class AbstractCreationNode implements ExecutableNode {
 
             if(verifySlots(slot1, slot2, items)){
                 if(inv.interact(slot1, USE)){
-                    MethodProvider.sleep(500);
+                    MethodProvider.sleep(Statics.randomNormalDist(300,100));
                     if(inv.isItemSelected()){
                         return inv.interact(slot2, USE);
                     }

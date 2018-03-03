@@ -1,6 +1,8 @@
-package Nodes;
+package Nodes.GENodes;
 
+import Nodes.ExecutableNode;
 import ScriptClasses.Statics;
+import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.api.Widgets;
@@ -19,6 +21,7 @@ public class GEBuyNode implements ExecutableNode {
     private int itemID;
     private String searchTerm;
 
+    private static final int COINS = 995;
     private static final int[] GE_BOX1_WIDGET_ID = {465, 7};
     private static final int[] GE_BOX2_WIDGET_ID = {465, 8};
     private static final int[] GE_BOX3_WIDGET_ID = {465, 9};
@@ -59,12 +62,40 @@ public class GEBuyNode implements ExecutableNode {
 
     @Override
     public int executeNodeAction() throws InterruptedException {
-        hostScriptRefence.log("calling priceCheckItem");
-        int[] margin = priceCheckItem();
-        if(margin != null){
-            hostScriptRefence.log("buy: " + margin[0] + " sell: " + margin[1]);
+        Inventory inv = hostScriptRefence.getInventory();
+        Bank bank = hostScriptRefence.getBank();
+
+        //withdraw all coins
+        if(!inv.contains(COINS)){
+            bank.open();
+            new ConditionalSleep(1000){
+                @Override
+                public boolean condition() throws InterruptedException {
+                    return bank.isOpen();
+                }
+            }.sleep();
+            if(bank.contains(COINS)) {
+                bank.withdraw(COINS, Bank.WITHDRAW_ALL);
+            }
         }
 
+        //do margin check on herb
+        if(inv.getAmount(COINS) >= 10000){
+            int[] margin = priceCheckItem();
+            if(margin != null){
+                hostScriptRefence.log("buy: " + margin[0] + " sell: " + margin[1]);
+            }
+            if(margin != null && margin.length == 2){
+                int marginMidPt = (margin[0] + margin[1])/2;
+                long cashStack = inv.getAmount(COINS);
+                int estimatedBuyableQuantity = (int) (cashStack / marginMidPt);
+                //buy about half at insta-buy price to instantly have some herbs to work with, other half at mid price
+                int instaBuyQuantity = estimatedBuyableQuantity/2 > 1000 ? estimatedBuyableQuantity/2 : 1000;
+                boolean instaBuyOfferSet = buyItem(margin[1], instaBuyQuantity);
+                MethodProvider.sleep(1000);
+                boolean midPriceOfferSet = buyItem(marginMidPt, estimatedBuyableQuantity - instaBuyQuantity);
+            }
+        }
         return 1000;
     }
 
@@ -72,7 +103,7 @@ public class GEBuyNode implements ExecutableNode {
         boolean openedGe = openGE();
         hostScriptRefence.log("opened GE: " + openedGe);
         if(openedGe) {
-            boolean boughtItem = buyItem();
+            boolean boughtItem = buyItem(10000, 1);
             hostScriptRefence.log("bought item: " + boughtItem);
             if(boughtItem) {
                 int instantBuyPrice = findInstaBuyPrice();
@@ -110,11 +141,11 @@ public class GEBuyNode implements ExecutableNode {
         return true;
     }
 
-    private boolean buyItem() throws InterruptedException {
+    private boolean buyItem(int price, int quantity) throws InterruptedException {
         hostScriptRefence.log("buy item");
         GrandExchange ge = hostScriptRefence.getGrandExchange();
         if(ge.isOpen()){
-            boolean didInteraction = ge.buyItem(itemID, searchTerm, 5000, 1);
+            boolean didInteraction = ge.buyItem(itemID, searchTerm, price, quantity);
             MethodProvider.sleep(Statics.randomNormalDist(300,75));
             return didInteraction;
         }
@@ -127,11 +158,10 @@ public class GEBuyNode implements ExecutableNode {
         GrandExchange.Box interactedBox = getInteractedGEBox();
         hostScriptRefence.log("target box: " + interactedBox);
         if(interactedBox != null){
-            GrandExchange.Box finalInteractedBox = interactedBox; //need to do this for conditional sleep
             new ConditionalSleep(60000){
                 @Override
                 public boolean condition() throws InterruptedException {
-                    return ge.getStatus(finalInteractedBox) == GrandExchange.Status.FINISHED_BUY;
+                    return ge.getStatus(interactedBox) == GrandExchange.Status.FINISHED_BUY;
                 }
             }.sleep();
             return ge.getAmountSpent(interactedBox);
