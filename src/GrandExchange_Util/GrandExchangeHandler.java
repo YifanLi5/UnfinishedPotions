@@ -64,9 +64,10 @@ public class GrandExchangeHandler {
                     hostScriptReference.getKeyboard().typeString(searchTerm, true);
                     MethodProvider.sleep(500);
 
-                    //get all queried items off of search term and find correct item to buy
+                    //get all queried items off of search term and find correct widget to click
                     RS2Widget geQueriedItemWidgets = hostScriptReference.getWidgets().get(GE_ITEM_SELECTION[0], GE_ITEM_SELECTION[1]);
                     if(geQueriedItemWidgets != null && geQueriedItemWidgets.isVisible()){
+                        //the index in geItemSelectionIDs that matches the itemID to buy is the third level widget ID of the correct widget
                         int[] geItemSelectionIDs = geQueriedItemWidgets.getInv();
                         int thirdLvlID = -1;
                         for(int i = 0; i < geItemSelectionIDs.length; i++){
@@ -75,7 +76,7 @@ public class GrandExchangeHandler {
                                 break;
                             }
                         }
-                        //select the correct item to buy
+                        //interact with the found widget
                         if(thirdLvlID != -1){
                             RS2Widget targetItemWidget = hostScriptReference.getWidgets().get(GE_ITEM_SELECTION[0], GE_ITEM_SELECTION[1], thirdLvlID);
                             if(targetItemWidget != null && targetItemWidget.isVisible()){
@@ -83,9 +84,10 @@ public class GrandExchangeHandler {
                                 hostScriptReference.getMouse().click(destination);
                                 MethodProvider.sleep(500);
 
+                                //set quantity and price parameter
                                 if(setItemQuantity(quantity) && setItemPrice(price)){
                                     if(confirmOffer()){
-                                        return new GrandExchangeOffer(true, box, itemID, quantity);
+                                        return new GrandExchangeOffer(hostScriptReference,true, box, itemID, quantity);
                                     }
                                 }
                             }
@@ -105,10 +107,9 @@ public class GrandExchangeHandler {
         hostScriptReference.getWidgets().closeOpenInterface();
         GrandExchange ge = hostScriptReference.getGrandExchange();
         if(openGE()){
-            //find a free box to use
+            //find a free box to use and interact with the sell widget
             GrandExchange.Box box = findFreeGEBox();
             RS2Widget geBoxWidget = getGEBoxWidget(false, box);
-            //interact with it
             if(geBoxWidget != null && geBoxWidget.isVisible()){
                 WidgetDestination destination = new WidgetDestination(hostScriptReference.getBot(), geBoxWidget);
                 if(hostScriptReference.getMouse().click(destination)){
@@ -125,7 +126,7 @@ public class GrandExchangeHandler {
                         MethodProvider.sleep(750);
                         if(setItemQuantity(quantity) && setItemPrice(price)){
                             if(confirmOffer()){
-                                return new GrandExchangeOffer(true, box, itemID, quantity);
+                                return new GrandExchangeOffer(hostScriptReference,true, box, itemID, quantity);
                             }
                         }
                     }
@@ -136,7 +137,6 @@ public class GrandExchangeHandler {
     }
 
     private boolean openGE() throws InterruptedException {
-        hostScriptReference.log("opening GE");
         GrandExchange ge = hostScriptReference.getGrandExchange();
         if(!ge.isOpen()){
             NPC grandExchangeClerk = hostScriptReference.getNpcs().closest("Grand Exchange Clerk");
@@ -231,12 +231,9 @@ public class GrandExchangeHandler {
         return false;
     }
 
-    private boolean confirmOffer(){
+    private boolean confirmOffer() {
         RS2Widget confirm = hostScriptReference.getWidgets().get(GE_CONFIRM[0], GE_CONFIRM[1]);
-        if(confirm != null && confirm.isVisible()){
-            return confirm.interact("Confirm");
-        }
-        return false;
+        return confirm != null && confirm.isVisible() && confirm.interact("Confirm");
     }
 
     private boolean isNumberEntryOpen(){

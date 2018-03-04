@@ -1,6 +1,8 @@
 package ScriptClasses;
 
+import GrandExchange_Util.GrandExchangeEventDispatcher;
 import GrandExchange_Util.GrandExchangeHandler;
+import GrandExchange_Util.GrandExchangeOffer;
 import Nodes.BankingNodes.SubOptimalWithdrawVariation0;
 import Nodes.BankingNodes.OptimalWithdrawVariation0;
 import Nodes.BankingNodes.SubOptimalWithdrawVariation1;
@@ -8,6 +10,8 @@ import Nodes.BankingNodes.OptimalWithdrawVariation1;
 import Nodes.CreationNodes.HoverBank;
 import Nodes.CreationNodes.MouseOffscreen;
 import Nodes.ExecutableNode;
+import org.osbot.rs07.api.GrandExchange;
+import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.script.ScriptManifest;
 
@@ -17,9 +21,13 @@ import static ScriptClasses.MainScript.BUILD_NUM;
 import static ScriptClasses.MainScript.SCRIPT_NAME;
 
 @ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
-public class MainScript extends Script{
+public class MainScript extends Script implements GrandExchangeEventDispatcher.GrandExchangeListener{
     static final String SCRIPT_NAME = "GE_testing";
-    static final int BUILD_NUM = 0;
+    static final int BUILD_NUM = 5;
+
+    GrandExchangeOffer buyOffer;
+    GrandExchangeHandler handler = new GrandExchangeHandler(this);
+    GrandExchangeEventDispatcher geEvents = new GrandExchangeEventDispatcher(this);
 
     MarkovNodeExecutor executor;
     @Override
@@ -64,16 +72,15 @@ public class MainScript extends Script{
 
     @Override
     public int onLoop() throws InterruptedException {
-        GrandExchangeHandler handler = new GrandExchangeHandler(this);
-        handler.buyItem(2998, "toadflax", 1, 5000);
+        this.buyOffer = handler.buyItem(229, "vial", 1, 10);
+        geEvents.addGEListenerForOffer(this, buyOffer);
 
+        MethodProvider.sleep(100000);
 
-
-        handler.sellItem(2998, 1, 1);
-        return 3000;
         /*ExecutableNode ge = GEBuyNode.getInstance(this, 2998, "toadflax");
         return ge.executeNodeAction();*/
         //return executor.executeNodeThenTraverse();
+        return 10000;
     }
 
     @Override
@@ -82,5 +89,20 @@ public class MainScript extends Script{
         Point pos = getMouse().getPosition();
         g.drawLine(0, pos.y, 800, pos.y); //horiz line
         g.drawLine(pos.x, 0, pos.x, 500); //vert line
+    }
+
+    @Override
+    public void onExit() throws InterruptedException {
+        super.onExit();
+        geEvents.stopQueryingOffers();
+    }
+
+    @Override
+    public void onGEUpdate(GrandExchangeOffer offer) {
+        if(offer.equals(this.buyOffer)){
+            GrandExchange.Status status = offer.getBoxStatus();
+            log("Offer for box " + offer.getSelectedBox().toString() + " updated. " +
+                    "\nIt is now " + status.toString());
+        }
     }
 }
