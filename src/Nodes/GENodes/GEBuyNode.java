@@ -48,7 +48,6 @@ public class GEBuyNode implements ExecutableNode {
             }
             return singleton;
         }
-        hostScriptRefence.stop();
         throw new IllegalStateException("script reference is null");
     }
 

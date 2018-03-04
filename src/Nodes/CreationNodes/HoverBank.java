@@ -27,6 +27,13 @@ public class HoverBank extends AbstractCreationNode{
         super(hostScriptRefence);
     }
 
+    public static ExecutableNode getInstance(Script hostScriptRefence){
+        if(singleton == null){
+            singleton = new HoverBank(hostScriptRefence);
+        }
+        return singleton;
+    }
+
     @Override
     int waitForPotions() {
         Inventory inv = hostScriptRefence.getInventory();
@@ -56,13 +63,6 @@ public class HoverBank extends AbstractCreationNode{
         }
         return null;
 
-    }
-
-    public static ExecutableNode getInstance(Script hostScriptRefence){
-        if(singleton == null){
-            singleton = new HoverBank(hostScriptRefence);
-        }
-        return singleton;
     }
 
 

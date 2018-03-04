@@ -15,6 +15,7 @@ import java.awt.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static ScriptClasses.Statics.*;
+import static java.awt.event.KeyEvent.VK_SPACE;
 
 abstract class AbstractCreationNode implements ExecutableNode {
 
@@ -36,6 +37,7 @@ abstract class AbstractCreationNode implements ExecutableNode {
     public int executeNodeAction() throws InterruptedException {
         logNode();
         if(combineComponents()){
+            Statics.shortRandomNormalDelay();
             if(interactMakePotsWidget()){
                 return waitForPotions();
             }
@@ -60,6 +62,11 @@ abstract class AbstractCreationNode implements ExecutableNode {
         }.sleep();
 
         if(widget.isVisible(MAKE_UNF_POTION_PARENT_ID, MAKE_UNF_POTION_CHILD_ID)){
+            boolean useSpace = ThreadLocalRandom.current().nextBoolean();
+            if(useSpace){
+                hostScriptRefence.getKeyboard().pressKey(VK_SPACE);
+                return true;
+            }
             return widget.interact(MAKE_UNF_POTION_PARENT_ID, MAKE_UNF_POTION_CHILD_ID, "Make");
         }
         return false;
@@ -134,8 +141,6 @@ abstract class AbstractCreationNode implements ExecutableNode {
         }
         return -1;
     }
-
-    //randomly choose a close inv slot to interact with
 
 
     void logNode(){

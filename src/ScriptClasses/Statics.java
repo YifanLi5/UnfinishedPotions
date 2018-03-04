@@ -1,5 +1,7 @@
 package ScriptClasses;
 
+import org.osbot.rs07.script.MethodProvider;
+
 import java.util.Random;
 
 public class Statics {
@@ -16,6 +18,14 @@ public class Statics {
     public static long randomNormalDist(double mean, double stddev){
         long debug = (long) ((new Random().nextGaussian() * stddev + mean));
         return Math.abs(debug); //in case we get a negative number
+    }
+
+    public static void longRandomNormalDelay() throws InterruptedException {
+        MethodProvider.sleep(randomNormalDist(2000,500));
+    }
+
+    public static void shortRandomNormalDelay() throws InterruptedException {
+        MethodProvider.sleep(randomNormalDist(350,100));
     }
 
 
