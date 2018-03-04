@@ -1,7 +1,7 @@
 package ScriptClasses;
 
 import GrandExchange_Util.GrandExchangeEventDispatcher;
-import GrandExchange_Util.GrandExchangeHandler;
+import GrandExchange_Util.GrandExchangeOperations;
 import GrandExchange_Util.GrandExchangeOffer;
 import Nodes.BankingNodes.SubOptimalWithdrawVariation0;
 import Nodes.BankingNodes.OptimalWithdrawVariation0;
@@ -23,10 +23,10 @@ import static ScriptClasses.MainScript.SCRIPT_NAME;
 @ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
 public class MainScript extends Script implements GrandExchangeEventDispatcher.GrandExchangeListener{
     static final String SCRIPT_NAME = "GE_testing";
-    static final int BUILD_NUM = 5;
+    static final int BUILD_NUM = 1;
 
     GrandExchangeOffer buyOffer;
-    GrandExchangeHandler handler = new GrandExchangeHandler(this);
+    GrandExchangeOperations operations = new GrandExchangeOperations(this);
     GrandExchangeEventDispatcher geEvents = new GrandExchangeEventDispatcher(this);
 
     MarkovNodeExecutor executor;
@@ -72,13 +72,8 @@ public class MainScript extends Script implements GrandExchangeEventDispatcher.G
 
     @Override
     public int onLoop() throws InterruptedException {
-        this.buyOffer = handler.buyItem(229, "vial", 1, 10);
-        geEvents.addGEListenerForOffer(this, buyOffer);
 
-        MethodProvider.sleep(100000);
 
-        /*ExecutableNode ge = GEBuyNode.getInstance(this, 2998, "toadflax");
-        return ge.executeNodeAction();*/
         //return executor.executeNodeThenTraverse();
         return 10000;
     }

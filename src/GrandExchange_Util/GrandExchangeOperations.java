@@ -4,6 +4,7 @@ import ScriptClasses.Statics;
 import org.osbot.Con;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.api.Inventory;
+import org.osbot.rs07.api.Mouse;
 import org.osbot.rs07.api.model.Item;
 import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.api.ui.RS2Widget;
@@ -12,7 +13,7 @@ import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
-public class GrandExchangeHandler {
+public class GrandExchangeOperations {
 
     /*
     widget ids for GE boxes
@@ -26,6 +27,7 @@ public class GrandExchangeHandler {
     private static final int[] GE_BOX6 = {465, 12, 26, 27};
     private static final int[] GE_BOX7 = {465, 13, 26, 27};
     private static final int[] GE_BOX8 = {465, 14, 26, 27};
+    private enum GE_OPERATIONS {BUY, SELL, COLLECT};
 
     private static final int[] NUMBER_ENTRY = {162, 35};
     private static final int[] GE_ITEM_ENTRY = {162, 36};
@@ -36,9 +38,12 @@ public class GrandExchangeHandler {
     private static final int[] ITEM_QUANTITY = {465, 24, 32};
     private static final int[] ITEM_PRICE = {465, 24, 39};
 
+    private static final int[] COLLECT_ITEM_LEFT_BOX = {465, 23, 2};
+    private static final int[] COLLECT_ITEM_RIGHT_BOX = {465, 23, 3};
+
     private Script hostScriptReference;
 
-    public GrandExchangeHandler(Script hostScriptReference) {
+    public GrandExchangeOperations(Script hostScriptReference) {
         this.hostScriptReference = hostScriptReference;
     }
 
@@ -48,7 +53,7 @@ public class GrandExchangeHandler {
         if(openGE()){
             //interact with next available box
             GrandExchange.Box box = findFreeGEBox();
-            RS2Widget geBoxWidget = getGEBoxWidget(true, box);
+            RS2Widget geBoxWidget = getGEBoxWidget(GE_OPERATIONS.BUY, box);
             if(geBoxWidget != null && geBoxWidget.isVisible()){
                 WidgetDestination destination = new WidgetDestination(hostScriptReference.getBot(), geBoxWidget);
                 if(hostScriptReference.getMouse().click(destination)){
@@ -106,27 +111,29 @@ public class GrandExchangeHandler {
     public GrandExchangeOffer sellItem(int itemID, int quantity, int price) throws InterruptedException {
         hostScriptReference.getWidgets().closeOpenInterface();
         GrandExchange ge = hostScriptReference.getGrandExchange();
-        if(openGE()){
-            //find a free box to use and interact with the sell widget
-            GrandExchange.Box box = findFreeGEBox();
-            RS2Widget geBoxWidget = getGEBoxWidget(false, box);
-            if(geBoxWidget != null && geBoxWidget.isVisible()){
-                WidgetDestination destination = new WidgetDestination(hostScriptReference.getBot(), geBoxWidget);
-                if(hostScriptReference.getMouse().click(destination)){
-                    //wait until sell screen opens
-                    new ConditionalSleep(1000){
-                        @Override
-                        public boolean condition() throws InterruptedException {
-                            return ge.isSellOfferOpen();
-                        }
-                    }.sleep();
+        if(hostScriptReference.getInventory().contains(itemID)){
+            if(openGE()){
+                //find a free box to use and interact with the sell widget
+                GrandExchange.Box box = findFreeGEBox();
+                RS2Widget geBoxWidget = getGEBoxWidget(GE_OPERATIONS.SELL, box);
+                if(geBoxWidget != null && geBoxWidget.isVisible()){
+                    WidgetDestination destination = new WidgetDestination(hostScriptReference.getBot(), geBoxWidget);
+                    if(hostScriptReference.getMouse().click(destination)){
+                        //wait until sell screen opens
+                        new ConditionalSleep(1000){
+                            @Override
+                            public boolean condition() throws InterruptedException {
+                                return ge.isSellOfferOpen();
+                            }
+                        }.sleep();
 
-                    Inventory inv = hostScriptReference.getInventory();
-                    if(inv.interact("Offer", itemID)){
-                        MethodProvider.sleep(750);
-                        if(setItemQuantity(quantity) && setItemPrice(price)){
-                            if(confirmOffer()){
-                                return new GrandExchangeOffer(hostScriptReference,true, box, itemID, quantity);
+                        Inventory inv = hostScriptReference.getInventory();
+                        if(inv.interact("Offer", itemID)){
+                            MethodProvider.sleep(750);
+                            if(setItemQuantity(quantity) && setItemPrice(price)){
+                                if(confirmOffer()){
+                                    return new GrandExchangeOffer(hostScriptReference,true, box, itemID, quantity);
+                                }
                             }
                         }
                     }
@@ -134,6 +141,42 @@ public class GrandExchangeHandler {
             }
         }
         return null;
+    }
+
+    public boolean collectFromBox(GrandExchange.Box box) throws InterruptedException {
+        RS2Widget geBoxWidget = getGEBoxWidget(GE_OPERATIONS.COLLECT, box);
+        GrandExchange ge = hostScriptReference.getGrandExchange();
+        if(openGE()){
+            if(geBoxWidget != null && geBoxWidget.isVisible()){
+                WidgetDestination destination = new WidgetDestination(hostScriptReference.getBot(), geBoxWidget);
+                Mouse m = hostScriptReference.getMouse();
+                if(m.click(destination)){
+                    new ConditionalSleep(1000){
+                        @Override
+                        public boolean condition() throws InterruptedException {
+                            return ge.isOfferScreenOpen();
+                        }
+                    }.sleep();
+
+                    RS2Widget collect = hostScriptReference.getWidgets().get(COLLECT_ITEM_LEFT_BOX[0], COLLECT_ITEM_LEFT_BOX[1], COLLECT_ITEM_LEFT_BOX[2]);
+                    destination = new WidgetDestination(hostScriptReference.getBot(), collect);
+                    if(m.click(destination)){
+                        MethodProvider.sleep(500);
+                        //detect if need to collect both right and left boxes. If after collecting the left box and the offer screen is still up, then the right box needs to be collected
+                        if(ge.isOfferScreenOpen()){
+                            collect = hostScriptReference.getWidgets().get(COLLECT_ITEM_RIGHT_BOX[0], COLLECT_ITEM_RIGHT_BOX[1], COLLECT_ITEM_RIGHT_BOX[2]);
+                            if(collect != null && collect.isVisible()){
+                                destination = new WidgetDestination(hostScriptReference.getBot(), collect);
+                                return m.click(destination);
+                            }
+                        }
+                        //else if ge returns to the main screen, then the collection process is complete
+                        else return ge.isOpen();
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private boolean openGE() throws InterruptedException {
@@ -156,14 +199,48 @@ public class GrandExchangeHandler {
         return true;
     }
 
-    private RS2Widget getGEBoxWidget(boolean buying, GrandExchange.Box box){
-        int thirdLvlID;
-        if(buying){
+    private RS2Widget getGEBoxWidget(GE_OPERATIONS operation, GrandExchange.Box box){
+        RS2Widget geBoxWidget = null;
+
+        //if collecting a 3rd lvl is not needed
+        if(operation == GE_OPERATIONS.COLLECT){
+            switch(box){
+                case BOX_1:
+                    geBoxWidget = hostScriptReference.getWidgets().get(GE_BOX1[0], GE_BOX1[1]);
+                    break;
+                case BOX_2:
+                    geBoxWidget = hostScriptReference.getWidgets().get(GE_BOX2[0], GE_BOX2[1]);
+                    break;
+                case BOX_3:
+                    geBoxWidget = hostScriptReference.getWidgets().get(GE_BOX3[0], GE_BOX3[1]);
+                    break;
+                case BOX_4:
+                    geBoxWidget = hostScriptReference.getWidgets().get(GE_BOX4[0], GE_BOX4[1]);
+                    break;
+                case BOX_5:
+                    geBoxWidget = hostScriptReference.getWidgets().get(GE_BOX5[0], GE_BOX5[1]);
+                    break;
+                case BOX_6:
+                    geBoxWidget = hostScriptReference.getWidgets().get(GE_BOX6[0], GE_BOX6[1]);
+                    break;
+                case BOX_7:
+                    geBoxWidget = hostScriptReference.getWidgets().get(GE_BOX7[0], GE_BOX7[1]);
+                    break;
+                case BOX_8:
+                    geBoxWidget = hostScriptReference.getWidgets().get(GE_BOX8[0], GE_BOX8[1]);
+                    break;
+
+            }
+            return geBoxWidget;
+        }
+
+        //if buying or selling, it is needed
+        int thirdLvlID = -1;
+        if(operation == GE_OPERATIONS.BUY){
             thirdLvlID = GE_BOX1[2];
-        } else{
+        } else if(operation == GE_OPERATIONS.SELL) {
             thirdLvlID = GE_BOX1[3];
         }
-        RS2Widget geBoxWidget = null;
 
         switch(box){
             case BOX_1:

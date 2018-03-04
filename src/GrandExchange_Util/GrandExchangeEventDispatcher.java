@@ -5,7 +5,7 @@ import org.osbot.rs07.script.Script;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -19,34 +19,33 @@ public class GrandExchangeEventDispatcher {
 
     private Script hostScriptReference;
 
-    //bidirectional mapping
-    private Hashtable<GrandExchangeOffer, GrandExchangeListener> offerToListenerMap; //used to get the listener associated with an offer
-    private Hashtable<GrandExchangeListener, GrandExchangeOffer> listenerToOfferMap; //used to easily remove a listener and offer for removeGEListenerAndOffer method
+    private ArrayList<GrandExchangeListener> listeners; //subscribed classes to ge offer changes
+    private ArrayList<GrandExchangeOffer> offers; //ongoing ge offers
 
     private ScheduledExecutorService geOfferQueryService;
 
     public GrandExchangeEventDispatcher(Script hostScriptReference) {
-        this.offerToListenerMap = new Hashtable<>();
-        this.listenerToOfferMap = new Hashtable<>();
+        this.listeners = new ArrayList<>();
+        this.offers = new ArrayList<>();
         this.hostScriptReference = hostScriptReference;
     }
 
     public void addGEListenerForOffer(GrandExchangeListener listener, GrandExchangeOffer offer){
+        this.offers.add(offer);
+        this.listeners.add(listener);
 
-        offerToListenerMap.put(offer, listener);
-        listenerToOfferMap.put(listener, offer);
-        //start querying offers if adding an initial listeners
-        if(offerToListenerMap.size() == 1){
+        //if adding an initial listener, start querying ge-offers for changes
+        if(listeners.size() == 1){
             continouslyQueryOffers();
         }
     }
 
-    public void removeGEListenerAndOffer(GrandExchangeListener listener){
-        GrandExchangeOffer removeFromOtherMap = listenerToOfferMap.get(listener);
-        listenerToOfferMap.remove(listener);
-        offerToListenerMap.remove(removeFromOtherMap);
+    public void removeGEListenerAndOffer(GrandExchangeListener listener, GrandExchangeOffer offer){
+        listeners.remove(listener);
+        offers.remove(offer);
 
-        if(offerToListenerMap.size() == 0){
+        //if all listeners detached, stop querying offers
+        if(listeners.size() == 0){
             geOfferQueryService.shutdown();
         }
     }
@@ -63,7 +62,7 @@ public class GrandExchangeEventDispatcher {
         Runnable queryRunable = () -> {
             try{
                 hostScriptReference.log("Offer listener is running");
-                for(GrandExchangeOffer offer: offerToListenerMap.keySet()){
+                for(GrandExchangeOffer offer: offers){
                     GrandExchange.Box box = offer.getSelectedBox();
                     if(box != null){
                         int amountTraded = ge.getAmountTraded(box);
@@ -85,14 +84,8 @@ public class GrandExchangeEventDispatcher {
     }
 
     private void notifyGEUpdate(GrandExchangeOffer offer){
-        GrandExchangeListener correctListener = offerToListenerMap.get(offer);
-        if(correctListener != null){
-            for(GrandExchangeListener listener: listenerToOfferMap.keySet()){
-                if(listener.equals(correctListener)){
-                    listener.onGEUpdate(offer);
-                    break;
-                }
-            }
+        for(GrandExchangeListener listener: listeners){
+            listener.onGEUpdate(offer);
         }
     }
 }
