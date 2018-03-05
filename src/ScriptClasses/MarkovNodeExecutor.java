@@ -98,7 +98,7 @@ public class MarkovNodeExecutor {
 
     }
 
-    private void jumpToNode(ExecutableNode target){
+    public void jumpToNode(ExecutableNode target){
         this.current = target;
     }
 }

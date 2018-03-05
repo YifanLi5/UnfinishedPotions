@@ -1,7 +1,10 @@
 package Nodes.BankingNodes;
 
 import Nodes.ExecutableNode;
+import Nodes.GENodes.GEBuyNode;
 import ScriptClasses.HerbEnum;
+import ScriptClasses.MainScript;
+import ScriptClasses.MarkovNodeExecutor;
 import ScriptClasses.Statics;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.Inventory;
@@ -59,8 +62,17 @@ public abstract class AbstractBankNode implements ExecutableNode {
             }
             else{
                 hostScriptReference.log("herb: " + debug1 + " vial: " + debug2);
-                hostScriptReference.log("ran out of supplies stopping script, TODO: rebuy");
-                hostScriptReference.stop(false);
+                hostScriptReference.log("ran out of supplies stopping script, attempt rebuy");
+                if(hostScriptReference instanceof MainScript){
+                    MarkovNodeExecutor executor = ((MainScript)hostScriptReference).getExecutor();
+                    ExecutableNode buy = GEBuyNode.getInstance(hostScriptReference, cleanHerb);
+                    executor.jumpToNode(buy);
+                } else{
+                    hostScriptReference.log("hostScriptReference is not MainScript, no getExecutor method");
+                    hostScriptReference.stop(false);
+                }
+
+
             }
         }
         return false;

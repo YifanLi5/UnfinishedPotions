@@ -1,27 +1,24 @@
 package ScriptClasses;
 
-import GrandExchange_Util.GrandExchangeEventDispatcher;
+import GrandExchange_Util.GrandExchangeObserver;
 import GrandExchange_Util.GrandExchangeOperations;
 import GrandExchange_Util.GrandExchangeOffer;
 import Nodes.BankingNodes.*;
 import Nodes.CreationNodes.AbstractCreationNode;
-import Nodes.CreationNodes.HoverBank;
-import Nodes.CreationNodes.MouseOffscreen;
 import Nodes.ExecutableNode;
+import Nodes.GENodes.GEBuyNode;
 import org.osbot.rs07.api.GrandExchange;
-import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.script.ScriptManifest;
 
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import static ScriptClasses.MainScript.BUILD_NUM;
 import static ScriptClasses.MainScript.SCRIPT_NAME;
 
 @ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
-public class MainScript extends Script implements GrandExchangeEventDispatcher.GrandExchangeListener{
+public class MainScript extends Script {
     static final String SCRIPT_NAME = "GE_testing";
     static final int BUILD_NUM = 6;
 
@@ -29,7 +26,7 @@ public class MainScript extends Script implements GrandExchangeEventDispatcher.G
 
     GrandExchangeOffer buyOffer;
     GrandExchangeOperations operations = new GrandExchangeOperations(this);
-    GrandExchangeEventDispatcher geEvents = new GrandExchangeEventDispatcher(this);
+    GrandExchangeObserver geEvents = new GrandExchangeObserver(this);
 
     MarkovNodeExecutor executor;
     @Override
@@ -50,6 +47,10 @@ public class MainScript extends Script implements GrandExchangeEventDispatcher.G
                 executor.addEdgeToNode(bankNode, creationNode, creationNode.getDefaultEdgeWeight());
             }
         }
+
+        //after buying, go back to bank node
+        ExecutableNode buy = GEBuyNode.getInstance(this, cleanHerb);
+        executor.addEdgeToNode(buy, bankingNodes.get(0), 1);
     }
 
     @Override
@@ -74,12 +75,7 @@ public class MainScript extends Script implements GrandExchangeEventDispatcher.G
         geEvents.stopQueryingOffers();
     }
 
-    @Override
-    public void onGEUpdate(GrandExchangeOffer offer) {
-        if(offer.equals(this.buyOffer)){
-            GrandExchange.Status status = offer.getBoxStatus();
-            log("Offer for box " + offer.getSelectedBox().toString() + " updated. " +
-                    "\nIt is now " + status.toString());
-        }
+    public MarkovNodeExecutor getExecutor() {
+        return executor;
     }
 }

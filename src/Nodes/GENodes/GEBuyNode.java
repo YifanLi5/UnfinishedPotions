@@ -1,5 +1,6 @@
 package Nodes.GENodes;
 
+import GrandExchange_Util.GrandExchangeObserver;
 import GrandExchange_Util.GrandExchangeOffer;
 import GrandExchange_Util.GrandExchangeOperations;
 import Nodes.ExecutableNode;
@@ -17,7 +18,7 @@ import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 
-public class GEBuyNode implements ExecutableNode {
+public class GEBuyNode implements ExecutableNode, GrandExchangeObserver.GrandExchangeListener {
 
     private Script hostScriptRefence;
     private static ExecutableNode singleton;
@@ -25,9 +26,18 @@ public class GEBuyNode implements ExecutableNode {
 
     private static final int COINS = 995;
 
+    private GrandExchangeOffer highOffer;
+    private boolean collectFromHigh = false;
+    private GrandExchangeOffer lowOffer;
+    private boolean collectFromLow = false;
+    private GrandExchangeOperations operations;
+    private GrandExchangeObserver observer;
+
     private GEBuyNode(Script hostScriptRefence, HerbEnum cleanHerb) {
         this.hostScriptRefence = hostScriptRefence;
         this.cleanHerb = cleanHerb;
+        this.operations = new GrandExchangeOperations(hostScriptRefence);
+        this.observer = new GrandExchangeObserver(hostScriptRefence);
     }
 
 
@@ -51,16 +61,40 @@ public class GEBuyNode implements ExecutableNode {
 
     @Override
     public int executeNodeAction() throws InterruptedException {
-        GrandExchangeOperations operations = new GrandExchangeOperations(hostScriptRefence);
         int[] margin = operations.priceCheckItem(cleanHerb.getItemID(), cleanHerb.getGeSearchTerm(), cleanHerb.getEstimatedHighPrice());
         int estimatedBuyAmt = findEstimatedBuyableQuantity(margin[0]);
-        int half = estimatedBuyAmt / 2;
-        //buy about half rounded down to nearest 100 at the high price
-        int buyAtHighPrice = half - half % 100;
+        int aboutHalf = (estimatedBuyAmt / 2) - ((estimatedBuyAmt / 2) % 100);
 
-        GrandExchangeOffer highOffer = operations.buyItem(cleanHerb.getItemID(), cleanHerb.)
+        hostScriptRefence.log("(high offer) buying " + aboutHalf + " " + cleanHerb.getItemName() + " at " + margin[0]);
+        highOffer = operations.buyItem(cleanHerb.getItemID(), cleanHerb.getGeSearchTerm(), aboutHalf, margin[0]);
+        observer.addGEListenerForOffer(this, highOffer);
 
-        return 0;
+        hostScriptRefence.log("(low offer) buying " + aboutHalf + " " + cleanHerb.getItemName() + " at " + margin[0]);
+        lowOffer = operations.buyItem(cleanHerb.getItemID(), cleanHerb.getGeSearchTerm(), aboutHalf, margin[1]);
+        observer.addGEListenerForOffer(this, lowOffer);
+
+        new ConditionalSleep(60000, 1000){
+            @Override
+            public boolean condition() throws InterruptedException {
+                hostScriptRefence.log("awaiting GE update");
+                return collectFromHigh || collectFromLow;
+            }
+        }.sleep();
+
+        if(collectFromHigh){
+            operations.collectFromBox(highOffer.getSelectedBox());
+            if(highOffer.isOfferFinished()){
+                observer.removeGEOffer(highOffer);
+            }
+        }
+        if(collectFromLow){
+            operations.collectFromBox(lowOffer.getSelectedBox());
+            if(lowOffer.isOfferFinished()){
+                observer.removeGEOffer(lowOffer);
+            }
+        }
+
+        return 1000;
     }
 
     private int findEstimatedBuyableQuantity(int highPrice){
@@ -75,4 +109,15 @@ public class GEBuyNode implements ExecutableNode {
         return 0;
     }
 
+    @Override
+    public void onGEUpdate(GrandExchangeOffer offer) {
+        if(offer == highOffer){
+            hostScriptRefence.log("high offer updated");
+            collectFromHigh = true;
+        }
+        else if(offer == lowOffer){
+            hostScriptRefence.log("low offer updated");
+            collectFromLow = true;
+        }
+    }
 }

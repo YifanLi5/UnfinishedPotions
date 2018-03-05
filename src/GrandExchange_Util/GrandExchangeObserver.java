@@ -11,7 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class GrandExchangeEventDispatcher {
+public class GrandExchangeObserver {
 
     public interface GrandExchangeListener {
         void onGEUpdate(GrandExchangeOffer offer);
@@ -24,7 +24,7 @@ public class GrandExchangeEventDispatcher {
 
     private ScheduledExecutorService geOfferQueryService;
 
-    public GrandExchangeEventDispatcher(Script hostScriptReference) {
+    public GrandExchangeObserver(Script hostScriptReference) {
         this.listeners = new ArrayList<>();
         this.offers = new ArrayList<>();
         this.hostScriptReference = hostScriptReference;
@@ -40,6 +40,10 @@ public class GrandExchangeEventDispatcher {
         }
     }
 
+    public void addGEOffer(GrandExchangeOffer offer){
+        this.offers.add(offer);
+    }
+
     public void removeGEListenerAndOffer(GrandExchangeListener listener, GrandExchangeOffer offer){
         listeners.remove(listener);
         offers.remove(offer);
@@ -48,6 +52,10 @@ public class GrandExchangeEventDispatcher {
         if(listeners.size() == 0){
             geOfferQueryService.shutdown();
         }
+    }
+
+    public void removeGEOffer(GrandExchangeOffer offer){
+        offers.remove(offer);
     }
 
     public void stopQueryingOffers(){
@@ -62,12 +70,13 @@ public class GrandExchangeEventDispatcher {
         Runnable queryRunable = () -> {
             try{
                 hostScriptReference.log("Offer listener is running");
+                ArrayList<GrandExchangeOffer> offersToRemove = new ArrayList<>();
                 for(GrandExchangeOffer offer: offers){
                     GrandExchange.Box box = offer.getSelectedBox();
                     if(box != null){
                         int amountTraded = ge.getAmountTraded(box);
                         boolean offerUpdated = offer.updateOffer(amountTraded);
-                        if(offerUpdated){
+                        if(offerUpdated || offer.isOfferFinished()){
                             notifyGEUpdate(offer);
                         }
                     }

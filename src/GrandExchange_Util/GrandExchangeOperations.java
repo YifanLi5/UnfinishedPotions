@@ -200,6 +200,9 @@ public class GrandExchangeOperations {
         RS2Widget geBoxWidget = getGEBoxWidget(GE_OPERATIONS.COLLECT, box);
         GrandExchange ge = hostScriptReference.getGrandExchange();
         if(openGE()){
+            if(ge.getStatus(box) == GrandExchange.Status.EMPTY){
+                return null;
+            }
             if(geBoxWidget != null && geBoxWidget.isVisible()){
                 WidgetDestination destination = new WidgetDestination(hostScriptReference.getBot(), geBoxWidget);
                 Mouse m = hostScriptReference.getMouse();
@@ -243,6 +246,7 @@ public class GrandExchangeOperations {
         }
         return null;
     }
+
 
     private boolean openGE() throws InterruptedException {
         GrandExchange ge = hostScriptReference.getGrandExchange();

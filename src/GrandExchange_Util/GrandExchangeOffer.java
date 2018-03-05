@@ -20,7 +20,7 @@ public class GrandExchangeOffer {
     private GrandExchange.Box selectedBox;
     private int itemID;
     private int totalAmountToTrade;
-    int amountTraded = 0;
+    private int amountTraded = 0;
 
     public static GrandExchangeOffer getInstance(Script hostScriptReference, GrandExchange.Box selectedBox){
         GrandExchange ge = hostScriptReference.getGrandExchange();
@@ -143,7 +143,14 @@ public class GrandExchangeOffer {
         return totalAmountToTrade;
     }
 
+    public int getAmountTraded() {
+        return amountTraded;
+    }
 
+    public boolean isOfferFinished() {
+        GrandExchange ge = hostScriptReference.getGrandExchange();
+        return ge.getStatus(selectedBox) == GrandExchange.Status.FINISHED_SALE || ge.getStatus(selectedBox) == GrandExchange.Status.FINISHED_BUY;
+    }
 
     /**
      *
