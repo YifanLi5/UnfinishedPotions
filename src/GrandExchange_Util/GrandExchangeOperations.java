@@ -40,6 +40,18 @@ public class GrandExchangeOperations {
 
     private static final int[] COLLECT_ITEM_LEFT_BOX = {465, 23, 2};
     private static final int[] COLLECT_ITEM_RIGHT_BOX = {465, 23, 3};
+    class GrandExchangeCollectData {
+        int leftBoxItemID = -1;
+        int leftBoxQuantity = -1;
+        int rightBoxItemID = -1;
+        int rightBoxQuantity = -1;
+
+        @Override
+        public String toString() {
+            return "left Item: " + leftBoxItemID + " left quantity: " + leftBoxQuantity + " right Item " + rightBoxItemID + " right box quantity: " + rightBoxQuantity;
+
+        }
+    }
 
     private Script hostScriptReference;
 
@@ -143,7 +155,48 @@ public class GrandExchangeOperations {
         return null;
     }
 
-    public boolean collectFromBox(GrandExchange.Box box) throws InterruptedException {
+    public int[] priceCheckItem(int itemID, String searchTerm, int estimatedHighPrice) throws InterruptedException {
+        int[] margin = new int[2];
+        GrandExchange ge = hostScriptReference.getGrandExchange();
+        GrandExchangeOffer buy = buyItem(itemID, searchTerm, 1, estimatedHighPrice);
+        new ConditionalSleep(3600){
+            @Override
+            public boolean condition() throws InterruptedException {
+                if(buy == null){
+                    return false;
+                }
+                return buy.getBoxStatus() == GrandExchange.Status.FINISHED_BUY;
+            }
+        }.sleep();
+
+        if(buy != null){
+            margin[0] = ge.getAmountSpent(buy.getSelectedBox());
+            collectFromBox(buy.getSelectedBox());
+            MethodProvider.sleep(1000);
+            GrandExchangeOffer sell = sellItem(itemID, 1, 1);
+            new ConditionalSleep(3600){
+                @Override
+                public boolean condition() throws InterruptedException {
+                    if(sell == null){
+                        return false;
+                    }
+                    return sell.getBoxStatus() == GrandExchange.Status.FINISHED_SALE;
+                }
+            }.sleep();
+            if(sell != null){
+                GrandExchangeCollectData collectData = collectFromBox(sell.getSelectedBox());
+                if(collectData != null){
+                    hostScriptReference.log(collectData.toString());
+                    margin[1] = collectData.leftBoxQuantity;
+                }
+            }
+
+        }
+
+        return margin;
+    }
+
+    public GrandExchangeCollectData collectFromBox(GrandExchange.Box box) throws InterruptedException {
         RS2Widget geBoxWidget = getGEBoxWidget(GE_OPERATIONS.COLLECT, box);
         GrandExchange ge = hostScriptReference.getGrandExchange();
         if(openGE()){
@@ -157,26 +210,38 @@ public class GrandExchangeOperations {
                             return ge.isOfferScreenOpen();
                         }
                     }.sleep();
-
                     RS2Widget collect = hostScriptReference.getWidgets().get(COLLECT_ITEM_LEFT_BOX[0], COLLECT_ITEM_LEFT_BOX[1], COLLECT_ITEM_LEFT_BOX[2]);
+                    GrandExchangeCollectData collectData = new GrandExchangeCollectData(); //fill up collectData as we collect left and right boxes
+                    collectData.leftBoxItemID = collect.getItemId();
+                    collectData.leftBoxQuantity = collect.getItemAmount();
                     destination = new WidgetDestination(hostScriptReference.getBot(), collect);
-                    if(m.click(destination)){
-                        MethodProvider.sleep(500);
-                        //detect if need to collect both right and left boxes. If after collecting the left box and the offer screen is still up, then the right box needs to be collected
-                        if(ge.isOfferScreenOpen()){
-                            collect = hostScriptReference.getWidgets().get(COLLECT_ITEM_RIGHT_BOX[0], COLLECT_ITEM_RIGHT_BOX[1], COLLECT_ITEM_RIGHT_BOX[2]);
-                            if(collect != null && collect.isVisible()){
-                                destination = new WidgetDestination(hostScriptReference.getBot(), collect);
-                                return m.click(destination);
+                    if(collect.isVisible()){
+                        if(m.click(destination)){
+                            MethodProvider.sleep(1000);
+                            //detect if need to collect both right and left boxes. If after collecting the left box and the offer screen is still up, then the right box needs to be collected
+                            if(ge.isOfferScreenOpen()){
+                                MethodProvider.sleep(1000);
+                                collect = hostScriptReference.getWidgets().get(COLLECT_ITEM_RIGHT_BOX[0], COLLECT_ITEM_RIGHT_BOX[1], COLLECT_ITEM_RIGHT_BOX[2]);
+                                if(collect != null && collect.isVisible()){
+                                    collectData.rightBoxItemID = collect.getItemId();
+                                    collectData.rightBoxQuantity = collect.getItemAmount();
+                                    destination = new WidgetDestination(hostScriptReference.getBot(), collect);
+                                    if(m.click(destination)){
+                                        return collectData;
+                                    }
+                                }
+                            }
+                            //else if ge returns to the main screen, then the collection process is complete
+                            else if(ge.isOpen()){
+                                MethodProvider.sleep(1000);
+                                return collectData;
                             }
                         }
-                        //else if ge returns to the main screen, then the collection process is complete
-                        else return ge.isOpen();
                     }
                 }
             }
         }
-        return false;
+        return null;
     }
 
     private boolean openGE() throws InterruptedException {

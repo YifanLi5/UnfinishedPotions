@@ -16,6 +16,7 @@ import org.osbot.rs07.script.Script;
 import org.osbot.rs07.script.ScriptManifest;
 
 import java.awt.*;
+import java.util.Arrays;
 
 import static ScriptClasses.MainScript.BUILD_NUM;
 import static ScriptClasses.MainScript.SCRIPT_NAME;
@@ -23,7 +24,7 @@ import static ScriptClasses.MainScript.SCRIPT_NAME;
 @ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
 public class MainScript extends Script implements GrandExchangeEventDispatcher.GrandExchangeListener{
     static final String SCRIPT_NAME = "GE_testing";
-    static final int BUILD_NUM = 1;
+    static final int BUILD_NUM = 6;
 
     GrandExchangeOffer buyOffer;
     GrandExchangeOperations operations = new GrandExchangeOperations(this);
@@ -72,8 +73,8 @@ public class MainScript extends Script implements GrandExchangeEventDispatcher.G
 
     @Override
     public int onLoop() throws InterruptedException {
-
-
+        int[] margin = operations.priceCheckItem(2998, "toadflax", 5000);
+        log(Arrays.toString(margin));
         //return executor.executeNodeThenTraverse();
         return 10000;
     }
