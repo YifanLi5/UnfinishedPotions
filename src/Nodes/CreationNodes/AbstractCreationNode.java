@@ -1,6 +1,7 @@
 package Nodes.CreationNodes;
 
 import Nodes.ExecutableNode;
+import ScriptClasses.HerbEnum;
 import ScriptClasses.Statics;
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.api.Mouse;
@@ -12,25 +13,31 @@ import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static ScriptClasses.Statics.*;
 import static java.awt.event.KeyEvent.VK_SPACE;
 
-abstract class AbstractCreationNode implements ExecutableNode {
+public abstract class AbstractCreationNode implements ExecutableNode {
 
     //keywords common to all herbs or vial or water
-    static final String USE = "Use";
-    static final String VIAL = "Vial";
-    static final String WEED = "weed";
-    static final String TOADFLAX = "flax";
+    private static final String USE = "Use";
+    private static final Rectangle makePotionsWidgetBounds = new Rectangle(212, 395, 95, 65);
+    HerbEnum cleanHerb;
 
-    static final Rectangle makeBounds = new Rectangle(212, 395, 95, 65);
+    Script hostScriptReference;
 
-    Script hostScriptRefence;
+    AbstractCreationNode(Script hostScriptReference, HerbEnum cleanHerb){
+        this.hostScriptReference = hostScriptReference;
+        this.cleanHerb = cleanHerb;
+    }
 
-    AbstractCreationNode(Script hostScriptRefence){
-        this.hostScriptRefence = hostScriptRefence;
+    public static ArrayList<ExecutableNode> getInheritingNodes(Script hostScriptReference, HerbEnum cleanHerb){
+        ArrayList<ExecutableNode> creationNodes = new ArrayList<>();
+        creationNodes.add(HoverBank.getInstance(hostScriptReference, cleanHerb));
+        creationNodes.add(MouseOffscreen.getInstance(hostScriptReference, cleanHerb));
+        return creationNodes;
     }
 
     @Override
@@ -49,10 +56,10 @@ abstract class AbstractCreationNode implements ExecutableNode {
     }
 
     private boolean interactMakePotsWidget(){
-        Widgets widget = hostScriptRefence.getWidgets();
-        Mouse mouse = hostScriptRefence.getMouse();
+        Widgets widget = hostScriptReference.getWidgets();
+        Mouse mouse = hostScriptReference.getMouse();
         //hover over make pots widget
-        mouse.move(new RectangleDestination(hostScriptRefence.getBot(), makeBounds));
+        mouse.move(new RectangleDestination(hostScriptReference.getBot(), makePotionsWidgetBounds));
         //wait until make all appears
         new ConditionalSleep(5000){
             @Override
@@ -64,7 +71,7 @@ abstract class AbstractCreationNode implements ExecutableNode {
         if(widget.isVisible(MAKE_UNF_POTION_PARENT_ID, MAKE_UNF_POTION_CHILD_ID)){
             boolean useSpace = ThreadLocalRandom.current().nextBoolean();
             if(useSpace){
-                hostScriptRefence.getKeyboard().pressKey(VK_SPACE);
+                hostScriptReference.getKeyboard().pressKey(VK_SPACE);
                 return true;
             }
             return widget.interact(MAKE_UNF_POTION_PARENT_ID, MAKE_UNF_POTION_CHILD_ID, "Make");
@@ -73,9 +80,9 @@ abstract class AbstractCreationNode implements ExecutableNode {
     }
 
     private boolean combineComponents() throws InterruptedException {
-        Inventory inv = hostScriptRefence.getInventory();
+        Inventory inv = hostScriptReference.getInventory();
 
-        if(inv.contains(CLEAN_HERB) && inv.contains(VIAL_OF_WATER)){
+        if(inv.contains(cleanHerb.getItemID()) && inv.contains(VIAL_OF_WATER)){
             Item[] items = inv.getItems();
             int slot1 = (int) Statics.randomNormalDist(14,2);
             int slot2;
@@ -86,7 +93,7 @@ abstract class AbstractCreationNode implements ExecutableNode {
                 slot2 = searchForOtherItemInvSlot(VIAL_OF_WATER, slot1, items);
             }
             else{
-                hostScriptRefence.log("detected foreign item");
+                hostScriptReference.log("detected foreign item");
                 return false;
             }
 
@@ -102,7 +109,7 @@ abstract class AbstractCreationNode implements ExecutableNode {
             //failsafe, if the above doesnt work
             if(inv.deselectItem()){
                 if(inv.interact("Use", VIAL_OF_WATER)){
-                    return inv.interact("Use", CLEAN_HERB);
+                    return inv.interact("Use", cleanHerb.getItemID());
                 }
             }
         }
@@ -113,7 +120,7 @@ abstract class AbstractCreationNode implements ExecutableNode {
         if(slot1 >= 0 && slot1 <= 28 && slot2 >= 0 && slot2 <= 28){
             int slot1ItemID = items[slot1].getId();
             int slot2ItemID = items[slot2].getId();
-            return (slot1ItemID == VIAL_OF_WATER && slot2ItemID == CLEAN_HERB) || (slot1ItemID == CLEAN_HERB && slot2ItemID == VIAL_OF_WATER);
+            return (slot1ItemID == VIAL_OF_WATER && slot2ItemID == cleanHerb.getItemID()) || (slot1ItemID == cleanHerb.getItemID() && slot2ItemID == VIAL_OF_WATER);
         }
         return false;
     }
@@ -144,7 +151,7 @@ abstract class AbstractCreationNode implements ExecutableNode {
 
 
     void logNode(){
-        hostScriptRefence.log(this.getClass().getSimpleName());
+        hostScriptReference.log(this.getClass().getSimpleName());
     }
 
     //define what to do when waiting for potions to finish, returns the sleeptime for onloop.

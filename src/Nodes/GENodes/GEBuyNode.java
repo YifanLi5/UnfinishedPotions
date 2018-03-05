@@ -1,6 +1,9 @@
 package Nodes.GENodes;
 
+import GrandExchange_Util.GrandExchangeOffer;
+import GrandExchange_Util.GrandExchangeOperations;
 import Nodes.ExecutableNode;
+import ScriptClasses.HerbEnum;
 import ScriptClasses.Statics;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.GrandExchange;
@@ -18,20 +21,20 @@ public class GEBuyNode implements ExecutableNode {
 
     private Script hostScriptRefence;
     private static ExecutableNode singleton;
-    private int itemID;
-    private String searchTerm;
+    private HerbEnum cleanHerb;
 
-    private GEBuyNode(Script hostScriptRefence, int itemID, String searchTerm) {
+    private static final int COINS = 995;
+
+    private GEBuyNode(Script hostScriptRefence, HerbEnum cleanHerb) {
         this.hostScriptRefence = hostScriptRefence;
-        this.itemID = itemID;
-        this.searchTerm = searchTerm;
+        this.cleanHerb = cleanHerb;
     }
 
 
-    public static ExecutableNode getInstance(Script hostScriptRefence, int itemID, String searchTerm){
+    public static ExecutableNode getInstance(Script hostScriptRefence, HerbEnum cleanHerb){
         if(hostScriptRefence != null){
             if(singleton == null){
-                singleton = new GEBuyNode(hostScriptRefence, itemID, searchTerm);
+                singleton = new GEBuyNode(hostScriptRefence, cleanHerb);
             }
             return singleton;
         }
@@ -48,7 +51,27 @@ public class GEBuyNode implements ExecutableNode {
 
     @Override
     public int executeNodeAction() throws InterruptedException {
+        GrandExchangeOperations operations = new GrandExchangeOperations(hostScriptRefence);
+        int[] margin = operations.priceCheckItem(cleanHerb.getItemID(), cleanHerb.getGeSearchTerm(), cleanHerb.getEstimatedHighPrice());
+        int estimatedBuyAmt = findEstimatedBuyableQuantity(margin[0]);
+        int half = estimatedBuyAmt / 2;
+        //buy about half rounded down to nearest 100 at the high price
+        int buyAtHighPrice = half - half % 100;
 
+        GrandExchangeOffer highOffer = operations.buyItem(cleanHerb.getItemID(), cleanHerb.)
+
+        return 0;
+    }
+
+    private int findEstimatedBuyableQuantity(int highPrice){
+        hostScriptRefence.getWidgets().closeOpenInterface();
+        int cashStack = (int) hostScriptRefence.getInventory().getAmount(COINS);
+        return highPrice / cashStack;
+    }
+
+    //not used in this node
+    @Override
+    public int getDefaultEdgeWeight() {
         return 0;
     }
 

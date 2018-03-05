@@ -1,23 +1,38 @@
 package Nodes.BankingNodes;
 
 import Nodes.ExecutableNode;
+import ScriptClasses.HerbEnum;
 import ScriptClasses.Statics;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 
+import java.util.ArrayList;
+
 import static ScriptClasses.Statics.CLEAN_HERB;
 import static ScriptClasses.Statics.VIAL_OF_WATER;
 
-abstract class AbstractBankNode implements ExecutableNode {
+public abstract class AbstractBankNode implements ExecutableNode {
 
     Script hostScriptReference;
+    HerbEnum cleanHerb;
 
-    AbstractBankNode(Script hostScriptReference){
+    AbstractBankNode(Script hostScriptReference, HerbEnum cleanHerb){
         this.hostScriptReference = hostScriptReference;
+        this.cleanHerb =  cleanHerb;
     }
 
+    public static ArrayList<ExecutableNode> getInheritingNodes(Script hostScriptReference, HerbEnum cleanHerb){
+        ArrayList<ExecutableNode> bankNodes = new ArrayList<>();
+        bankNodes.add(OptimalWithdrawVariation0.getInstance(hostScriptReference, cleanHerb));
+        bankNodes.add(OptimalWithdrawVariation1.getInstance(hostScriptReference, cleanHerb));
+        bankNodes.add(SubOptimalWithdrawVariation0.getInstance(hostScriptReference, cleanHerb));
+        bankNodes.add(SubOptimalWithdrawVariation1.getInstance(hostScriptReference, cleanHerb));
+        bankNodes.add(SubOptimalWithdrawVariation2.getInstance(hostScriptReference, cleanHerb));
+        bankNodes.add(SubOptimalWithdrawVariation3.getInstance(hostScriptReference, cleanHerb));
+        return bankNodes;
+    }
 
     @Override
     public int executeNodeAction() throws InterruptedException {

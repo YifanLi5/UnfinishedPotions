@@ -6,7 +6,7 @@ import java.util.Random;
 
 public class Statics {
 
-    public static final int CLEAN_HERB = 261; //ranarr = 257, toadflax = 2998, avantoe = 261
+    public static final int CLEAN_HERB = 257; //ranarr = 257, toadflax = 2998, avantoe = 261
     public static final int VIAL_OF_WATER = 227;
     public static final int UNF_POTION = 99;
 
@@ -27,6 +27,4 @@ public class Statics {
     public static void shortRandomNormalDelay() throws InterruptedException {
         MethodProvider.sleep(randomNormalDist(350,100));
     }
-
-
 }
