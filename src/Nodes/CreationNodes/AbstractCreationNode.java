@@ -1,50 +1,44 @@
 package Nodes.CreationNodes;
 
-import Nodes.ExecutableNode;
-import ScriptClasses.HerbEnum;
-import ScriptClasses.Statics;
+import Util.HerbEnum;
+import ScriptClasses.MarkovNodeExecutor;
+import Util.Statics;
+import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.api.Inventory;
-import org.osbot.rs07.api.Mouse;
-import org.osbot.rs07.api.Widgets;
 import org.osbot.rs07.api.model.Item;
-import org.osbot.rs07.input.mouse.RectangleDestination;
+import org.osbot.rs07.api.ui.RS2Widget;
 import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
-import java.awt.*;
-import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static ScriptClasses.Statics.*;
+import static Util.Statics.*;
 import static java.awt.event.KeyEvent.VK_SPACE;
 
-public abstract class AbstractCreationNode implements ExecutableNode {
+public abstract class AbstractCreationNode implements MarkovNodeExecutor.ExecutableNode, GrandExchange.GrandExchangeObserver {
 
     //keywords common to all herbs or vial or water
     private static final String USE = "Use";
-    private static final Rectangle makePotionsWidgetBounds = new Rectangle(212, 395, 95, 65);
+    private boolean geUpdated;
     HerbEnum cleanHerb;
 
-    Script hostScriptReference;
+    Script script;
 
-    AbstractCreationNode(Script hostScriptReference, HerbEnum cleanHerb){
-        this.hostScriptReference = hostScriptReference;
+    AbstractCreationNode(Script script, HerbEnum cleanHerb){
+        this.script = script;
         this.cleanHerb = cleanHerb;
     }
 
-    public static ArrayList<ExecutableNode> getInheritingNodes(Script hostScriptReference, HerbEnum cleanHerb){
-        ArrayList<ExecutableNode> creationNodes = new ArrayList<>();
-        creationNodes.add(HoverBank.getInstance(hostScriptReference, cleanHerb));
-        creationNodes.add(MouseOffscreen.getInstance(hostScriptReference, cleanHerb));
-        return creationNodes;
+    @Override
+    public boolean canExecute() {
+        return script.getInventory().contains(cleanHerb.getItemName()) && script.getInventory().contains("Vial of water");
     }
 
     @Override
-    public int executeNodeAction() throws InterruptedException {
+    public int executeNode() throws InterruptedException {
         logNode();
         if(combineComponents()){
-            Statics.shortRandomNormalDelay();
             if(interactMakePotsWidget()){
                 return waitForPotions();
             }
@@ -56,31 +50,28 @@ public abstract class AbstractCreationNode implements ExecutableNode {
     }
 
     private boolean interactMakePotsWidget(){
-        Widgets widget = hostScriptReference.getWidgets();
-        Mouse mouse = hostScriptReference.getMouse();
-        //hover over make pots widget
-        mouse.move(new RectangleDestination(hostScriptReference.getBot(), makePotionsWidgetBounds));
-        //wait until make all appears
-        new ConditionalSleep(5000){
+        final RS2Widget[] makeWidget = new RS2Widget[1];
+        new ConditionalSleep(2000){
             @Override
             public boolean condition() throws InterruptedException {
-                return widget.isVisible(MAKE_UNF_POTION_PARENT_ID, MAKE_UNF_POTION_CHILD_ID);
+                makeWidget[0] = script.getWidgets().containingActions(270, "Make").get(0);
+                return makeWidget[0] != null && makeWidget[0].isVisible();
             }
         }.sleep();
 
-        if(widget.isVisible(MAKE_UNF_POTION_PARENT_ID, MAKE_UNF_POTION_CHILD_ID)){
+        if(makeWidget[0] != null && makeWidget[0].isVisible()){
             boolean useSpace = ThreadLocalRandom.current().nextBoolean();
             if(useSpace){
-                hostScriptReference.getKeyboard().pressKey(VK_SPACE);
+                script.getKeyboard().pressKey(VK_SPACE);
                 return true;
             }
-            return widget.interact(MAKE_UNF_POTION_PARENT_ID, MAKE_UNF_POTION_CHILD_ID, "Make");
+            return makeWidget[0].interact("Make");
         }
         return false;
     }
 
     private boolean combineComponents() throws InterruptedException {
-        Inventory inv = hostScriptReference.getInventory();
+        Inventory inv = script.getInventory();
 
         if(inv.contains(cleanHerb.getItemID()) && inv.contains(VIAL_OF_WATER)){
             Item[] items = inv.getItems();
@@ -93,7 +84,7 @@ public abstract class AbstractCreationNode implements ExecutableNode {
                 slot2 = searchForOtherItemInvSlot(VIAL_OF_WATER, slot1, items);
             }
             else{
-                hostScriptReference.log("detected foreign item");
+                script.log("detected foreign item");
                 return false;
             }
 
@@ -151,9 +142,20 @@ public abstract class AbstractCreationNode implements ExecutableNode {
 
 
     void logNode(){
-        hostScriptReference.log(this.getClass().getSimpleName());
+        script.log(this.getClass().getSimpleName());
     }
 
     //define what to do when waiting for potions to finish, returns the sleeptime for onloop.
     abstract int waitForPotions();
+
+    @Override
+    public boolean doConditionalTraverse() {
+        return geUpdated;
+    }
+
+    @Override
+    public void onGEUpdate(GrandExchange.Box box) {
+        geUpdated = true;
+        //TODO: determine if buy or sell and doConditionTraverse to either buy or sell nodes
+    }
 }

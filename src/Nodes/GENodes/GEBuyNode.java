@@ -1,123 +1,97 @@
 package Nodes.GENodes;
 
-import GrandExchange_Util.GrandExchangeObserver;
-import GrandExchange_Util.GrandExchangeOffer;
-import GrandExchange_Util.GrandExchangeOperations;
-import Nodes.ExecutableNode;
-import ScriptClasses.HerbEnum;
-import ScriptClasses.Statics;
-import org.osbot.rs07.api.Bank;
+import GrandExchange.GrandExchangeObserver;
+import GrandExchange.GrandExchangeOperations;
+import GrandExchange.GrandExchangePolling;
+import Util.HerbEnum;
+import ScriptClasses.MarkovNodeExecutor;
 import org.osbot.rs07.api.GrandExchange;
-import org.osbot.rs07.api.Inventory;
-import org.osbot.rs07.api.Widgets;
-import org.osbot.rs07.api.model.NPC;
-import org.osbot.rs07.api.ui.RS2Widget;
-import org.osbot.rs07.input.mouse.WidgetDestination;
+import org.osbot.rs07.api.map.Position;
 import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
+import java.awt.*;
+import java.awt.geom.Area;
 
-public class GEBuyNode implements ExecutableNode, GrandExchangeObserver.GrandExchangeListener {
 
-    private Script hostScriptRefence;
-    private static ExecutableNode singleton;
-    private HerbEnum cleanHerb;
+public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchangeObserver {
 
-    private static final int COINS = 995;
-
-    private GrandExchangeOffer highOffer;
-    private boolean collectFromHigh = false;
-    private GrandExchangeOffer lowOffer;
-    private boolean collectFromLow = false;
+    private final Script script;
     private GrandExchangeOperations operations;
-    private GrandExchangeObserver observer;
+    private HerbEnum buy = HerbEnum.VIAL_OF_WATER;
+    private GrandExchangePolling polling;
+    private static MarkovNodeExecutor.ExecutableNode singleton;
+    private static final Rectangle GE_AREA = new Rectangle(3159, 3494, 10, 10);
 
-    private GEBuyNode(Script hostScriptRefence, HerbEnum cleanHerb) {
-        this.hostScriptRefence = hostScriptRefence;
-        this.cleanHerb = cleanHerb;
-        this.operations = new GrandExchangeOperations(hostScriptRefence);
-        this.observer = new GrandExchangeObserver(hostScriptRefence);
+    private boolean offerUpdated, offerFinished;
+
+    private GEBuyNode(Script script){
+        operations = new GrandExchangeOperations();
+        polling = new GrandExchangePolling();
+        operations.exchangeContext(script.bot);
+        polling.exchangeContext(script.bot);
+        this.script = script;
+    }
+
+    public static MarkovNodeExecutor.ExecutableNode getInstance(Script script){
+        if(singleton == null){
+            singleton = new GEBuyNode(script);
+        }
+        return singleton;
     }
 
 
-    public static ExecutableNode getInstance(Script hostScriptRefence, HerbEnum cleanHerb){
-        if(hostScriptRefence != null){
-            if(singleton == null){
-                singleton = new GEBuyNode(hostScriptRefence, cleanHerb);
-            }
-            return singleton;
+    @Override
+    public void onGEUpdate(GrandExchange.Box box) {
+        GrandExchange ge = script.getGrandExchange();
+        if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY && ge.getItemId(box) == buy.getItemID()){
+            offerFinished = true;
         }
-        throw new IllegalStateException("script reference is null");
-    }
-
-
-    public static ExecutableNode getInstance(){
-        if(singleton != null){
-            return singleton;
-        }
-        throw new IllegalStateException("singleton is null, call the other overloaded getInstance method first");
+        offerUpdated = true;
     }
 
     @Override
-    public int executeNodeAction() throws InterruptedException {
-        int[] margin = operations.priceCheckItem(cleanHerb.getItemID(), cleanHerb.getGeSearchTerm(), cleanHerb.getEstimatedHighPrice());
-        int estimatedBuyAmt = findEstimatedBuyableQuantity(margin[0]);
-        int aboutHalf = (estimatedBuyAmt / 2) - ((estimatedBuyAmt / 2) % 100);
+    public boolean canExecute() throws InterruptedException {
+        Position pos = script.myPlayer().getPosition();
+        return GE_AREA.contains(pos.getX(), pos.getY());
+    }
 
-        hostScriptRefence.log("(high offer) buying " + aboutHalf + " " + cleanHerb.getItemName() + " at " + margin[0]);
-        highOffer = operations.buyItem(cleanHerb.getItemID(), cleanHerb.getGeSearchTerm(), aboutHalf, margin[0]);
-        observer.addGEListenerForOffer(this, highOffer);
+    @Override
+    public int executeNode() throws InterruptedException {
+        if(isBuyItemPending() || operations.buyItem(buy.getItemID(), buy.getItemName(), 1)){
 
-        hostScriptRefence.log("(low offer) buying " + aboutHalf + " " + cleanHerb.getItemName() + " at " + margin[0]);
-        lowOffer = operations.buyItem(cleanHerb.getItemID(), cleanHerb.getGeSearchTerm(), aboutHalf, margin[1]);
-        observer.addGEListenerForOffer(this, lowOffer);
+            polling.registerObserver(this);
+            polling.startQueryingOffers();
 
-        new ConditionalSleep(60000, 1000){
-            @Override
-            public boolean condition() throws InterruptedException {
-                hostScriptRefence.log("awaiting GE update");
-                return collectFromHigh || collectFromLow;
+            if(offerUpdated){
+                boolean successfulCollect = false;
+                int attempts = 0;
+                while(!successfulCollect && attempts < 5){
+                    successfulCollect = operations.collectAll();
+                    attempts++;
+                    MethodProvider.sleep(1000);
+                }
             }
-        }.sleep();
-
-        if(collectFromHigh){
-            operations.collectFromBox(highOffer.getSelectedBox());
-            if(highOffer.isOfferFinished()){
-                observer.removeGEOffer(highOffer);
-            }
+            if(offerFinished)
+                polling.stopQueryingOffers();
         }
-        if(collectFromLow){
-            operations.collectFromBox(lowOffer.getSelectedBox());
-            if(lowOffer.isOfferFinished()){
-                observer.removeGEOffer(lowOffer);
-            }
-        }
-
         return 1000;
     }
 
-    private int findEstimatedBuyableQuantity(int highPrice){
-        hostScriptRefence.getWidgets().closeOpenInterface();
-        int cashStack = (int) hostScriptRefence.getInventory().getAmount(COINS);
-        return highPrice / cashStack;
-    }
-
-    //not used in this node
-    @Override
-    public int getDefaultEdgeWeight() {
-        return 0;
+    private boolean isBuyItemPending(){
+        for (GrandExchange.Box box : GrandExchange.Box.values())
+            return script.getGrandExchange().getItemId(box) == buy.getItemID();
+        return false;
     }
 
     @Override
-    public void onGEUpdate(GrandExchangeOffer offer) {
-        if(offer == highOffer){
-            hostScriptRefence.log("high offer updated");
-            collectFromHigh = true;
-        }
-        else if(offer == lowOffer){
-            hostScriptRefence.log("low offer updated");
-            collectFromLow = true;
-        }
+    public boolean doConditionalTraverse() {
+        return false;
+    }
+
+    public void stopThread(){
+        if(polling != null)
+            polling.stopQueryingOffers();
     }
 }
