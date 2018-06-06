@@ -18,22 +18,7 @@ public abstract class AbstractHerbWithdraw implements MarkovNodeExecutor.Executa
 
     @Override
     public boolean canExecute() throws InterruptedException {
-        Bank bank = script.getBank();
-        if(script.getInventory().contains(targetHerb.getItemName())){
-            return false;
-        }
-        if(bank.open()){
-            new ConditionalSleep(1000){
-                @Override
-                public boolean condition() throws InterruptedException {
-                    return bank.isOpen();
-                }
-            }.sleep();
-            if(bank.isOpen())
-                return bank.contains(targetHerb.getItemName());
-
-        }
-        return false;
+        return !script.getInventory().contains(targetHerb.getItemName());
     }
 
     @Override

@@ -68,10 +68,6 @@ public class GrandExchangeOperations extends API{
                     if(setBuyPrice())
                         if(setBuyQuantity(quantity))
                             return confirmOffer();
-
-
-
-
         }
 
         return false;

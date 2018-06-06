@@ -5,30 +5,35 @@ import GrandExchangeUtil.GrandExchangeOperations;
 import GrandExchangeUtil.GrandExchangePolling;
 import ScriptClasses.MarkovNodeExecutor;
 import Util.HerbAndPotionsEnum;
+import Util.Statics;
 import org.osbot.rs07.api.GrandExchange;
+import org.osbot.rs07.api.Tabs;
 import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExchangeObserver {
     private Script script;
-    private HerbAndPotionsEnum sell = HerbAndPotionsEnum.VIAL_OF_WATER;
+    private HerbAndPotionsEnum sell;
     private GrandExchangeOperations operations;
     private GrandExchangePolling polling;
-    private boolean offerUpdated, offerFinished;
+    private boolean offerUpdated, offerFinished, doPreventIdleAction = true;
 
-    public GESellNode(Script script) {
+    public GESellNode(Script script, HerbAndPotionsEnum sell) {
         this.script = script;
+        this.sell = sell;
         this.operations = new GrandExchangeOperations();
-        this.polling = new GrandExchangePolling(script);
-
+        this.polling = GrandExchangePolling.getInstance(script);
         operations.exchangeContext(script.bot);
     }
 
     @Override
     public void onGEUpdate(GrandExchange.Box box) {
         GrandExchange ge = script.getGrandExchange();
-        if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY && ge.getItemId(box) == sell.getHerbItemID()){
+        if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY && ge.getItemId(box) == sell.getUnfPotionItemID()){
             offerFinished = true;
         }
         offerUpdated = true;
@@ -42,7 +47,7 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
 
     @Override
     public int executeNode() throws InterruptedException {
-        if(isSellItemPending() || operations.sellItem(sell.getHerbItemID())){
+        if(isSellItemPending() || operations.sellItem(sell.getUnfPotionItemID())){
             polling.registerObserver(this);
 
             if(offerUpdated){
@@ -53,6 +58,8 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
                     attempts++;
                     MethodProvider.sleep(1000);
                 }
+                if(!successfulCollect)
+                    preventIdleLogout();
             }
             if(offerFinished)
                 polling.removeObserver(this);
@@ -67,6 +74,23 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
                     (ge.getStatus(box) == GrandExchange.Status.COMPLETING_SALE ||
                             ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE);
         return false;
+    }
+
+    private void preventIdleLogout() throws InterruptedException {
+        if(doPreventIdleAction){
+            doPreventIdleAction = false;
+            Tabs tabs = script.getTabs();
+            tabs.open(org.osbot.rs07.api.ui.Tab.SKILLS);
+            Statics.shortRandomNormalDelay();
+            tabs.open(org.osbot.rs07.api.ui.Tab.INVENTORY);
+            int nextAction = (int) Statics.randomNormalDist(200000, 25000);
+            new Timer().schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    doPreventIdleAction = true;
+                }
+            }, nextAction);
+        }
     }
 
     @Override

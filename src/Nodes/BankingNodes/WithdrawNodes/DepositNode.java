@@ -35,8 +35,10 @@ public class DepositNode implements MarkovNodeExecutor.ExecutableNode {
                 }
             }.sleep();
             if(bank.isOpen()){
-                if(bank.depositAll()){
-                    return (int) Statics.randomNormalDist(1000, 500);
+                if(!script.getInventory().isEmpty()){
+                    if(bank.depositAll()){
+                        return (int) Statics.randomNormalDist(1000, 500);
+                    }
                 }
             }
         }

@@ -3,7 +3,6 @@ package Nodes.CreationNodes;
 import Util.HerbAndPotionsEnum;
 import ScriptClasses.MarkovNodeExecutor;
 import Util.Statics;
-import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.api.model.Item;
 import org.osbot.rs07.api.ui.RS2Widget;
@@ -16,23 +15,21 @@ import java.util.concurrent.ThreadLocalRandom;
 import static Util.Statics.*;
 import static java.awt.event.KeyEvent.VK_SPACE;
 
-public abstract class AbstractCreationNode implements MarkovNodeExecutor.ExecutableNode, GrandExchangeUtil.GrandExchangeObserver {
+public abstract class AbstractCreationNode implements MarkovNodeExecutor.ExecutableNode {
 
-    //keywords common to all herbs or vial or water
     private static final String USE = "Use";
-    private boolean geUpdated;
-    HerbAndPotionsEnum cleanHerb;
+    HerbAndPotionsEnum item;
 
     Script script;
 
-    AbstractCreationNode(Script script, HerbAndPotionsEnum cleanHerb){
+    AbstractCreationNode(Script script, HerbAndPotionsEnum item){
         this.script = script;
-        this.cleanHerb = cleanHerb;
+        this.item = item;
     }
 
     @Override
     public boolean canExecute() {
-        return script.getInventory().contains(cleanHerb.getItemName()) && script.getInventory().contains("Vial of water");
+        return script.getInventory().contains(item.getItemName()) && script.getInventory().contains("Vial of water");
     }
 
     @Override
@@ -73,7 +70,7 @@ public abstract class AbstractCreationNode implements MarkovNodeExecutor.Executa
     private boolean combineComponents() throws InterruptedException {
         Inventory inv = script.getInventory();
 
-        if(inv.contains(cleanHerb.getHerbItemID()) && inv.contains(VIAL_OF_WATER)){
+        if(inv.contains(item.getHerbItemID()) && inv.contains(VIAL_OF_WATER)){
             Item[] items = inv.getItems();
             int slot1 = (int) Statics.randomNormalDist(14,2);
             int slot2;
@@ -100,7 +97,7 @@ public abstract class AbstractCreationNode implements MarkovNodeExecutor.Executa
             //failsafe, if the above doesnt work
             if(inv.deselectItem()){
                 if(inv.interact("Use", VIAL_OF_WATER)){
-                    return inv.interact("Use", cleanHerb.getHerbItemID());
+                    return inv.interact("Use", item.getHerbItemID());
                 }
             }
         }
@@ -111,7 +108,7 @@ public abstract class AbstractCreationNode implements MarkovNodeExecutor.Executa
         if(slot1 >= 0 && slot1 <= 28 && slot2 >= 0 && slot2 <= 28){
             int slot1ItemID = items[slot1].getId();
             int slot2ItemID = items[slot2].getId();
-            return (slot1ItemID == VIAL_OF_WATER && slot2ItemID == cleanHerb.getHerbItemID()) || (slot1ItemID == cleanHerb.getHerbItemID() && slot2ItemID == VIAL_OF_WATER);
+            return (slot1ItemID == VIAL_OF_WATER && slot2ItemID == item.getHerbItemID()) || (slot1ItemID == item.getHerbItemID() && slot2ItemID == VIAL_OF_WATER);
         }
         return false;
     }
@@ -149,12 +146,6 @@ public abstract class AbstractCreationNode implements MarkovNodeExecutor.Executa
 
     @Override
     public boolean doConditionalTraverse() {
-        return geUpdated;
-    }
-
-    @Override
-    public void onGEUpdate(GrandExchange.Box box) {
-        geUpdated = true;
-        //TODO: determine if buy or sell and doConditionTraverse to either buy or sell nodes
+        return false;
     }
 }
