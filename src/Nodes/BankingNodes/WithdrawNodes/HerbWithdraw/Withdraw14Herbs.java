@@ -1,11 +1,11 @@
 package Nodes.BankingNodes.WithdrawNodes.HerbWithdraw;
 
-import Util.HerbEnum;
+import Util.HerbAndPotionsEnum;
 import org.osbot.rs07.script.Script;
 
 public class Withdraw14Herbs extends AbstractHerbWithdraw {
 
-    public Withdraw14Herbs(Script script, HerbEnum targetHerb) {
+    public Withdraw14Herbs(Script script, HerbAndPotionsEnum targetHerb) {
         super(script, targetHerb);
     }
 

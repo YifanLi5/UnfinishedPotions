@@ -1,6 +1,6 @@
 package Nodes.BankingNodes.WithdrawNodes.VialWithdraw;
 
-import Util.HerbEnum;
+import Util.HerbAndPotionsEnum;
 import ScriptClasses.MarkovNodeExecutor;
 import Util.Statics;
 import org.osbot.rs07.api.Bank;
@@ -17,7 +17,7 @@ public abstract class AbstractVialWithdraw implements MarkovNodeExecutor.Executa
     @Override
     public boolean canExecute() throws InterruptedException {
         Bank bank = script.getBank();
-        if(script.getInventory().contains(HerbEnum.VIAL_OF_WATER.getItemName())){
+        if(script.getInventory().contains(HerbAndPotionsEnum.VIAL_OF_WATER.getItemName())){
             return false;
         }
         if(bank.open()){
@@ -28,7 +28,7 @@ public abstract class AbstractVialWithdraw implements MarkovNodeExecutor.Executa
                 }
             }.sleep();
             if(bank.isOpen())
-                return bank.contains(HerbEnum.VIAL_OF_WATER.getItemName());
+                return bank.contains(HerbAndPotionsEnum.VIAL_OF_WATER.getItemName());
 
         }
         return false;

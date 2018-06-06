@@ -1,6 +1,8 @@
 package ScriptClasses;
 
 import Nodes.GENodes.GEBuyNode;
+import Nodes.GENodes.GESellNode;
+import Util.NoSuitableNodesException;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.script.ScriptManifest;
 
@@ -11,21 +13,34 @@ import static ScriptClasses.MainScript.SCRIPT_NAME;
 
 @ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
 public class MainScript extends Script {
-    static final String SCRIPT_NAME = "buy testing0";
-    static final int BUILD_NUM = 6;
+    static final String SCRIPT_NAME = "buy/sell";
+    static final int BUILD_NUM = 9;
 
     GEBuyNode buy;
+    GESellNode sell;
+    MarkovNodeExecutor executor;
 
     @Override
     public void onStart() throws InterruptedException {
         super.onStart();
-        buy = (GEBuyNode) GEBuyNode.getInstance(this);
+        buy = new GEBuyNode(this);
+        sell = new GESellNode(this);
+        executor = new MarkovNodeExecutor(buy);
+
+        executor.addNormalEdgeToNode(buy, sell, 1);
+        executor.addNormalEdgeToNode(sell, buy, 1);
 
     }
 
     @Override
     public int onLoop() throws InterruptedException {
-        return buy.executeNode();
+        try {
+            return executor.executeThenTraverse();
+        } catch (NoSuitableNodesException e) {
+            stop(false);
+            e.printStackTrace();
+        }
+        return 0;
     }
 
     @Override

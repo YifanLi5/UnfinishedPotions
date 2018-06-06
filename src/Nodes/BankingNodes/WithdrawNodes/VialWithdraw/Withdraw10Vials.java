@@ -1,6 +1,6 @@
 package Nodes.BankingNodes.WithdrawNodes.VialWithdraw;
 
-import Util.HerbEnum;
+import Util.HerbAndPotionsEnum;
 import org.osbot.rs07.script.Script;
 
 public class Withdraw10Vials extends AbstractVialWithdraw{
@@ -11,7 +11,7 @@ public class Withdraw10Vials extends AbstractVialWithdraw{
 
     @Override
     boolean withdrawVials() {
-        return script.getBank().withdraw(HerbEnum.VIAL_OF_WATER.getItemName(), 10);
+        return script.getBank().withdraw(HerbAndPotionsEnum.VIAL_OF_WATER.getItemName(), 10);
     }
 
     @Override

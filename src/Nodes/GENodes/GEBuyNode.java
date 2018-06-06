@@ -1,51 +1,36 @@
 package Nodes.GENodes;
 
-import GrandExchange.GrandExchangeObserver;
-import GrandExchange.GrandExchangeOperations;
-import GrandExchange.GrandExchangePolling;
-import Util.HerbEnum;
+import GrandExchangeUtil.GrandExchangeObserver;
+import GrandExchangeUtil.GrandExchangeOperations;
+import GrandExchangeUtil.GrandExchangePolling;
+import Util.HerbAndPotionsEnum;
 import ScriptClasses.MarkovNodeExecutor;
 import org.osbot.rs07.api.GrandExchange;
-import org.osbot.rs07.api.map.Position;
+import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
-import org.osbot.rs07.utility.ConditionalSleep;
-
-import java.awt.*;
-import java.awt.geom.Area;
 
 
 public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchangeObserver {
 
     private final Script script;
     private GrandExchangeOperations operations;
-    private HerbEnum buy = HerbEnum.VIAL_OF_WATER;
+    private HerbAndPotionsEnum buy = HerbAndPotionsEnum.VIAL_OF_WATER;
     private GrandExchangePolling polling;
-    private static MarkovNodeExecutor.ExecutableNode singleton;
-    private static final Rectangle GE_AREA = new Rectangle(3159, 3494, 10, 10);
 
     private boolean offerUpdated, offerFinished;
 
-    private GEBuyNode(Script script){
+    public GEBuyNode(Script script){
         operations = new GrandExchangeOperations();
-        polling = new GrandExchangePolling();
+        polling = new GrandExchangePolling(script);
         operations.exchangeContext(script.bot);
-        polling.exchangeContext(script.bot);
         this.script = script;
     }
-
-    public static MarkovNodeExecutor.ExecutableNode getInstance(Script script){
-        if(singleton == null){
-            singleton = new GEBuyNode(script);
-        }
-        return singleton;
-    }
-
 
     @Override
     public void onGEUpdate(GrandExchange.Box box) {
         GrandExchange ge = script.getGrandExchange();
-        if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY && ge.getItemId(box) == buy.getItemID()){
+        if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY && ge.getItemId(box) == buy.getHerbItemID()){
             offerFinished = true;
         }
         offerUpdated = true;
@@ -53,16 +38,15 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
 
     @Override
     public boolean canExecute() throws InterruptedException {
-        Position pos = script.myPlayer().getPosition();
-        return GE_AREA.contains(pos.getX(), pos.getY());
+        NPC clerk = script.getNpcs().closest("Grand Exchange Clerk");
+        return clerk != null && clerk.exists();
     }
 
     @Override
     public int executeNode() throws InterruptedException {
-        if(isBuyItemPending() || operations.buyItem(buy.getItemID(), buy.getItemName(), 1)){
+        if(isBuyItemPending() || operations.buyItem(buy.getHerbItemID(), buy.getItemName(), 1)){
 
             polling.registerObserver(this);
-            polling.startQueryingOffers();
 
             if(offerUpdated){
                 boolean successfulCollect = false;
@@ -72,16 +56,20 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
                     attempts++;
                     MethodProvider.sleep(1000);
                 }
+
             }
             if(offerFinished)
-                polling.stopQueryingOffers();
+                polling.removeObserver(this);
         }
         return 1000;
     }
 
     private boolean isBuyItemPending(){
+        GrandExchange ge = script.getGrandExchange();
         for (GrandExchange.Box box : GrandExchange.Box.values())
-            return script.getGrandExchange().getItemId(box) == buy.getItemID();
+            return ge.getItemId(box) == buy.getHerbItemID() &&
+                    (ge.getStatus(box) == GrandExchange.Status.COMPLETING_BUY ||
+                            ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY);
         return false;
     }
 

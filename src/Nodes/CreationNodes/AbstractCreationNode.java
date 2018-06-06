@@ -1,6 +1,6 @@
 package Nodes.CreationNodes;
 
-import Util.HerbEnum;
+import Util.HerbAndPotionsEnum;
 import ScriptClasses.MarkovNodeExecutor;
 import Util.Statics;
 import org.osbot.rs07.api.GrandExchange;
@@ -16,16 +16,16 @@ import java.util.concurrent.ThreadLocalRandom;
 import static Util.Statics.*;
 import static java.awt.event.KeyEvent.VK_SPACE;
 
-public abstract class AbstractCreationNode implements MarkovNodeExecutor.ExecutableNode, GrandExchange.GrandExchangeObserver {
+public abstract class AbstractCreationNode implements MarkovNodeExecutor.ExecutableNode, GrandExchangeUtil.GrandExchangeObserver {
 
     //keywords common to all herbs or vial or water
     private static final String USE = "Use";
     private boolean geUpdated;
-    HerbEnum cleanHerb;
+    HerbAndPotionsEnum cleanHerb;
 
     Script script;
 
-    AbstractCreationNode(Script script, HerbEnum cleanHerb){
+    AbstractCreationNode(Script script, HerbAndPotionsEnum cleanHerb){
         this.script = script;
         this.cleanHerb = cleanHerb;
     }
@@ -73,7 +73,7 @@ public abstract class AbstractCreationNode implements MarkovNodeExecutor.Executa
     private boolean combineComponents() throws InterruptedException {
         Inventory inv = script.getInventory();
 
-        if(inv.contains(cleanHerb.getItemID()) && inv.contains(VIAL_OF_WATER)){
+        if(inv.contains(cleanHerb.getHerbItemID()) && inv.contains(VIAL_OF_WATER)){
             Item[] items = inv.getItems();
             int slot1 = (int) Statics.randomNormalDist(14,2);
             int slot2;
@@ -100,7 +100,7 @@ public abstract class AbstractCreationNode implements MarkovNodeExecutor.Executa
             //failsafe, if the above doesnt work
             if(inv.deselectItem()){
                 if(inv.interact("Use", VIAL_OF_WATER)){
-                    return inv.interact("Use", cleanHerb.getItemID());
+                    return inv.interact("Use", cleanHerb.getHerbItemID());
                 }
             }
         }
@@ -111,7 +111,7 @@ public abstract class AbstractCreationNode implements MarkovNodeExecutor.Executa
         if(slot1 >= 0 && slot1 <= 28 && slot2 >= 0 && slot2 <= 28){
             int slot1ItemID = items[slot1].getId();
             int slot2ItemID = items[slot2].getId();
-            return (slot1ItemID == VIAL_OF_WATER && slot2ItemID == cleanHerb.getItemID()) || (slot1ItemID == cleanHerb.getItemID() && slot2ItemID == VIAL_OF_WATER);
+            return (slot1ItemID == VIAL_OF_WATER && slot2ItemID == cleanHerb.getHerbItemID()) || (slot1ItemID == cleanHerb.getHerbItemID() && slot2ItemID == VIAL_OF_WATER);
         }
         return false;
     }
@@ -139,7 +139,6 @@ public abstract class AbstractCreationNode implements MarkovNodeExecutor.Executa
         }
         return -1;
     }
-
 
     void logNode(){
         script.log(this.getClass().getSimpleName());

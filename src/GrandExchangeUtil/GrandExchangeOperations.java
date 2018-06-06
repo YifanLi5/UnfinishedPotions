@@ -1,4 +1,4 @@
-package GrandExchange;
+package GrandExchangeUtil;
 
 import Util.Statics;
 import org.osbot.rs07.Bot;
@@ -63,20 +63,23 @@ public class GrandExchangeOperations extends API{
         getWidgets().closeOpenInterface();
         if(openGE()){
             GrandExchange.Box box = findFreeGEBox();
-            if(interactBuyOption(box)){
-                if(searchAndSelectItem(searchTerm, itemID)){
-                    if(setBuyPrice()){
-                        if(setBuyQuantity(quantity)){
+            if(interactBuyOption(box))
+                if(searchAndSelectItem(searchTerm, itemID))
+                    if(setBuyPrice())
+                        if(setBuyQuantity(quantity))
                             return confirmOffer();
-                        }
-                    }
-                }
-            }
+
+
+
+
         }
+
         return false;
     }
 
     public boolean sellItem(int itemID) throws InterruptedException {
+        if(!getInventory().contains(itemID))
+            withdrawSellItem(itemID);
         getWidgets().closeOpenInterface();
         if(openGE()){
             if(offerItem(itemID)){
@@ -199,6 +202,13 @@ public class GrandExchangeOperations extends API{
     }
 
     private boolean setBuyQuantity(int quantity) throws InterruptedException {
+        RS2Widget currentQuantityWidget = getWidgets().singleFilter(ROOT_ID,widget -> positionEquals(widget.getPosition(), new Point(39, 177)));
+        if(currentQuantityWidget != null){
+            int currentBuyQuantity = Integer.parseInt(currentQuantityWidget.getMessage());
+            if(quantity == currentBuyQuantity)
+                return true;
+        }
+
         RS2Widget quantitySelection = getWidgets().getWidgetContainingText(ROOT_ID, "...");
         if(quantitySelection != null && quantitySelection.isVisible()){
             if(quantitySelection.interact()){
@@ -239,6 +249,22 @@ public class GrandExchangeOperations extends API{
     }
 
     //Sell Item helper methods
+    private boolean withdrawSellItem(int itemID) throws InterruptedException {
+        if (getBank().open()) {
+            new ConditionalSleep(1000) {
+                @Override
+                public boolean condition() throws InterruptedException {
+                    return getBank().isOpen();
+                }
+            }.sleep();
+            if (getBank().isOpen()) {
+                return bank.withdraw(itemID, 1); //TODO: change after debugging
+            }
+
+        }
+        return false;
+    }
+
     private boolean offerItem(int itemID){
         if(inventory.contains(itemID)){
             if(inventory.interact("Offer", itemID)){

@@ -1,30 +1,33 @@
-package GrandExchange;
+package GrandExchangeUtil;
 
 import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.script.API;
 import org.osbot.rs07.script.MethodProvider;
+import org.osbot.rs07.script.Script;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class GrandExchangeRunnable extends API implements Runnable {
+public class GrandExchangeRunnable implements Runnable {
 
     private AtomicBoolean running = new AtomicBoolean(false);
+    private Script script;
     private HashMap<GrandExchange.Box, Integer> amountTradedMap;
     private ArrayList<GrandExchangeObserver> observers;
 
-    public GrandExchangeRunnable(ArrayList<GrandExchangeObserver> observers){
+    public GrandExchangeRunnable(ArrayList<GrandExchangeObserver> observers, Script script){
         this.observers = observers;
+        this.script = script;
         amountTradedMap = new HashMap<>();
     }
 
     @Override
     public void run() {
-        log("starting ge query thread");
+        script.log("starting ge query thread");
         running.set(true);
-        GrandExchange ge = getGrandExchange();
+        GrandExchange ge = script.getGrandExchange();
         for (GrandExchange.Box box : GrandExchange.Box.values()) {
             if(ge.getStatus(box) == GrandExchange.Status.EMPTY){
                 amountTradedMap.put(box, -1);
@@ -53,20 +56,11 @@ public class GrandExchangeRunnable extends API implements Runnable {
                 e.printStackTrace();
             }
         }
-        log("stopping ge query thread");
+        script.log("stopping ge query thread");
     }
 
     public void stop(){
         running.set(false);
     }
 
-    @Override
-    public void initializeModule() {
-
-    }
-
-    @Override
-    public MethodProvider exchangeContext(Bot iIiiiiiiIiii) {
-        return super.exchangeContext(iIiiiiiiIiii);
-    }
 }

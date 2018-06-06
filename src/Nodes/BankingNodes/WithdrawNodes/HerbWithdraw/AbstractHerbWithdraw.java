@@ -1,6 +1,6 @@
 package Nodes.BankingNodes.WithdrawNodes.HerbWithdraw;
 
-import Util.HerbEnum;
+import Util.HerbAndPotionsEnum;
 import ScriptClasses.MarkovNodeExecutor;
 import Util.Statics;
 import org.osbot.rs07.api.Bank;
@@ -9,9 +9,9 @@ import org.osbot.rs07.utility.ConditionalSleep;
 
 public abstract class AbstractHerbWithdraw implements MarkovNodeExecutor.ExecutableNode{
     Script script;
-    HerbEnum targetHerb;
+    HerbAndPotionsEnum targetHerb;
 
-    AbstractHerbWithdraw(Script script, HerbEnum targetHerb){
+    AbstractHerbWithdraw(Script script, HerbAndPotionsEnum targetHerb){
         this.script = script;
         this.targetHerb = targetHerb;
     }
