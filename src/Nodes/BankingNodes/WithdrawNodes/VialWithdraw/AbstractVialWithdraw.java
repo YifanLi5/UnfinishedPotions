@@ -1,11 +1,10 @@
 package Nodes.BankingNodes.WithdrawNodes.VialWithdraw;
 
-import Util.HerbAndPotionsEnum;
 import ScriptClasses.MarkovNodeExecutor;
+import Util.HerbAndPotionsEnum;
 import Util.Statics;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.script.Script;
-import org.osbot.rs07.utility.ConditionalSleep;
 
 public abstract class AbstractVialWithdraw implements MarkovNodeExecutor.ExecutableNode{
     Script script;
