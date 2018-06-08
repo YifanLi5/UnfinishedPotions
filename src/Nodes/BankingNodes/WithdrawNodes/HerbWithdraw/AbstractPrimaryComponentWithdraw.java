@@ -1,24 +1,24 @@
 package Nodes.BankingNodes.WithdrawNodes.HerbWithdraw;
 
-import Util.HerbAndPotionsEnum;
 import ScriptClasses.MarkovNodeExecutor;
+import Util.ComponentsEnum;
 import Util.Statics;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.script.Script;
-import org.osbot.rs07.utility.ConditionalSleep;
 
-public abstract class AbstractHerbWithdraw implements MarkovNodeExecutor.ExecutableNode{
+public abstract class AbstractPrimaryComponentWithdraw implements MarkovNodeExecutor.ExecutableNode{
     Script script;
-    HerbAndPotionsEnum targetHerb;
+    ComponentsEnum components;
 
-    AbstractHerbWithdraw(Script script, HerbAndPotionsEnum targetHerb){
+    AbstractPrimaryComponentWithdraw(Script script, ComponentsEnum primary){
         this.script = script;
-        this.targetHerb = targetHerb;
+        this.components = primary;
     }
 
     @Override
     public boolean canExecute() throws InterruptedException {
-        return !script.getInventory().contains(targetHerb.getItemName());
+        return !script.getInventory().contains(components.getPrimaryItemName())
+                || script.getInventory().isEmpty();
     }
 
     @Override
@@ -26,7 +26,7 @@ public abstract class AbstractHerbWithdraw implements MarkovNodeExecutor.Executa
         Bank bank = script.getBank();
         if(bank.isOpen())
             if(withdrawHerbs())
-                return (int) Statics.randomNormalDist(1000, 500);
+                return (int) Statics.randomNormalDist(500, 100);
 
         return 0;
     }

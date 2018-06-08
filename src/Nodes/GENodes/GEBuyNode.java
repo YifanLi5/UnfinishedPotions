@@ -3,12 +3,10 @@ package Nodes.GENodes;
 import GrandExchangeUtil.GrandExchangeObserver;
 import GrandExchangeUtil.GrandExchangeOperations;
 import GrandExchangeUtil.GrandExchangePolling;
-import Util.HerbAndPotionsEnum;
 import ScriptClasses.MarkovNodeExecutor;
+import Util.ComponentsEnum;
 import Util.Statics;
-import javafx.scene.control.Tab;
 import org.osbot.rs07.api.GrandExchange;
-import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.api.Tabs;
 import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.script.MethodProvider;
@@ -22,13 +20,13 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
 
     private final Script script;
     private GrandExchangeOperations operations;
-    private HerbAndPotionsEnum buy;
+    private ComponentsEnum buy;
     private GrandExchangePolling polling;
     private boolean doPreventIdleAction = true;
 
     private boolean offerUpdated, offerFinished;
 
-    public GEBuyNode(Script script, HerbAndPotionsEnum buy){
+    public GEBuyNode(Script script, ComponentsEnum buy){
         operations = new GrandExchangeOperations();
         polling = GrandExchangePolling.getInstance(script);
         operations.exchangeContext(script.bot);
@@ -39,7 +37,7 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
     @Override
     public void onGEUpdate(GrandExchange.Box box) {
         GrandExchange ge = script.getGrandExchange();
-        if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY && ge.getItemId(box) == buy.getHerbItemID()){
+        if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY && ge.getItemId(box) == buy.getPrimaryItemID()){
             offerFinished = true;
         }
         offerUpdated = true;
@@ -53,24 +51,18 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
 
     @Override
     public int executeNode() throws InterruptedException {
-        if(isBuyItemPending() || operations.buyItem(buy.getHerbItemID(), buy.getItemName(), 100)){
-
+        if(isBuyItemPending() || operations.buyItem(buy.getPrimaryItemID(), buy.getGeSearchTerm(), 100)){
             polling.registerObserver(this);
-
-            if(offerUpdated){
-                boolean successfulCollect = false;
-                int attempts = 0;
-                while(!successfulCollect && attempts < 5){
-                    successfulCollect = operations.collectAll();
-                    attempts++;
-                    MethodProvider.sleep(1000);
-                }
-                if(!successfulCollect)
-                    preventIdleLogout();
-
+            while(!offerFinished)
+                preventIdleLogout();
+            boolean successfulCollect = false;
+            int attempts = 0;
+            while(!successfulCollect && attempts < 5){
+                successfulCollect = operations.collectAll();
+                attempts++;
+                MethodProvider.sleep(1000);
             }
-            if(offerFinished)
-                polling.removeObserver(this);
+            polling.removeObserver(this);
         }
         return 1000;
     }
@@ -78,9 +70,11 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
     private boolean isBuyItemPending(){
         GrandExchange ge = script.getGrandExchange();
         for (GrandExchange.Box box : GrandExchange.Box.values())
-            return ge.getItemId(box) == buy.getHerbItemID() &&
-                    (ge.getStatus(box) == GrandExchange.Status.COMPLETING_BUY ||
-                            ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY);
+            if(ge.getItemId(box) == buy.getPrimaryItemID()){
+                return ge.getStatus(box) == GrandExchange.Status.COMPLETING_BUY ||
+                        ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY;
+            }
+
         return false;
     }
 

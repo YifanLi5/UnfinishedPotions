@@ -1,16 +1,16 @@
 package Nodes.BankingNodes.WithdrawNodes;
 
 import ScriptClasses.MarkovNodeExecutor;
-import Util.HerbAndPotionsEnum;
+import Util.ComponentsEnum;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.script.Script;
 
 public class DecideRestockNode implements MarkovNodeExecutor.ExecutableNode {
     private Script script;
-    private HerbAndPotionsEnum item = HerbAndPotionsEnum.TOADFLAX;
-    private boolean conditionalTraverse = false;
+    private ComponentsEnum item;
+    private boolean goToGE = false;
 
-    public DecideRestockNode(Script script, HerbAndPotionsEnum item) {
+    public DecideRestockNode(Script script, ComponentsEnum item) {
         this.script = script;
         this.item = item;
     }
@@ -23,17 +23,17 @@ public class DecideRestockNode implements MarkovNodeExecutor.ExecutableNode {
     @Override
     public int executeNode() throws InterruptedException {
         Bank bank = script.getBank();
-        int herbsRemaining = (int) bank.getAmount(item.getItemName());
-        if(herbsRemaining < 14)
-            conditionalTraverse = true;
+        int primaryRemaining = (int) bank.getAmount(item.getPrimaryItemName());
+        if(primaryRemaining < 14)
+            goToGE = true;
 
         return 0;
     }
 
     @Override
     public boolean doConditionalTraverse() {
-        if(conditionalTraverse){
-            conditionalTraverse = false;
+        if(goToGE){
+            goToGE = false;
             return true;
         }
         return false;

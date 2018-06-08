@@ -1,17 +1,17 @@
 package Nodes.BankingNodes.WithdrawNodes.HerbWithdraw;
 
-import Util.HerbAndPotionsEnum;
+import Util.ComponentsEnum;
 import org.osbot.rs07.script.Script;
 
-public class Withdraw10Herbs extends AbstractHerbWithdraw {
+public class Withdraw10Primary extends AbstractPrimaryComponentWithdraw {
 
-    public Withdraw10Herbs(Script script, HerbAndPotionsEnum targetHerb) {
+    public Withdraw10Primary(Script script, ComponentsEnum targetHerb) {
         super(script, targetHerb);
     }
 
     @Override
     boolean withdrawHerbs() {
-        return script.getBank().withdraw(targetHerb.getItemName(), 10);
+        return script.getBank().withdraw(components.getPrimaryItemName(), 10);
     }
 
     @Override

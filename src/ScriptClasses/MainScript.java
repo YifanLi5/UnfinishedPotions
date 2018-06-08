@@ -2,14 +2,14 @@ package ScriptClasses;
 
 import Nodes.BankingNodes.WithdrawNodes.DecideRestockNode;
 import Nodes.BankingNodes.WithdrawNodes.DepositNode;
-import Nodes.BankingNodes.WithdrawNodes.HerbWithdraw.Withdraw10Herbs;
-import Nodes.BankingNodes.WithdrawNodes.HerbWithdraw.Withdraw14Herbs;
-import Nodes.BankingNodes.WithdrawNodes.VialWithdraw.Withdraw10Vials;
-import Nodes.BankingNodes.WithdrawNodes.VialWithdraw.Withdraw14Vials;
+import Nodes.BankingNodes.WithdrawNodes.HerbWithdraw.Withdraw10Primary;
+import Nodes.BankingNodes.WithdrawNodes.HerbWithdraw.Withdraw14Primary;
+import Nodes.BankingNodes.WithdrawNodes.VialWithdraw.Withdraw10Secondary;
+import Nodes.BankingNodes.WithdrawNodes.VialWithdraw.Withdraw14Secondary;
 import Nodes.CreationNodes.BasicCreation;
 import Nodes.GENodes.GEBuyNode;
 import Nodes.GENodes.GESellNode;
-import Util.HerbAndPotionsEnum;
+import Util.ComponentsEnum;
 import Util.NoSuitableNodesException;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.script.ScriptManifest;
@@ -22,9 +22,10 @@ import static ScriptClasses.MainScript.SCRIPT_NAME;
 @ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
 public class MainScript extends Script {
     static final String SCRIPT_NAME = "test";
-    static final int BUILD_NUM = 001;
+    static final int BUILD_NUM = 3;
 
-    private HerbAndPotionsEnum targetItem = HerbAndPotionsEnum.TOADFLAX;
+    private ComponentsEnum debugComponent = ComponentsEnum.CLAY;
+
     MarkovNodeExecutor executor;
     GEBuyNode buy;
     GESellNode sell;
@@ -47,21 +48,21 @@ public class MainScript extends Script {
     }
 
     private void markovChainSetup(){
-        buy = new GEBuyNode(this, targetItem);
-        sell = new GESellNode(this, targetItem);
-        BasicCreation create = new BasicCreation(this, targetItem);
+        buy = new GEBuyNode(this, debugComponent);
+        sell = new GESellNode(this, debugComponent);
+        BasicCreation create = new BasicCreation(this, debugComponent);
 
-        Withdraw10Herbs w10H_1 = new Withdraw10Herbs(this, targetItem);
-        Withdraw10Herbs w10H_2 = new Withdraw10Herbs(this, targetItem);
-        Withdraw14Herbs w14H_1 = new Withdraw14Herbs(this, targetItem);
-        Withdraw14Herbs w14H_2 = new Withdraw14Herbs(this, targetItem);
-        Withdraw10Vials w10V_1 = new Withdraw10Vials(this);
-        Withdraw10Vials w10V_2 = new Withdraw10Vials(this);
-        Withdraw14Vials w14V_1 = new Withdraw14Vials(this);
-        Withdraw14Vials w14V_2 = new Withdraw14Vials(this);
+        Withdraw10Primary w10H_1 = new Withdraw10Primary(this, debugComponent);
+        Withdraw10Primary w10H_2 = new Withdraw10Primary(this, debugComponent);
+        Withdraw14Primary w14H_1 = new Withdraw14Primary(this, debugComponent);
+        Withdraw14Primary w14H_2 = new Withdraw14Primary(this, debugComponent);
+        Withdraw10Secondary w10V_1 = new Withdraw10Secondary(this, debugComponent);
+        Withdraw10Secondary w10V_2 = new Withdraw10Secondary(this, debugComponent);
+        Withdraw14Secondary w14V_1 = new Withdraw14Secondary(this, debugComponent);
+        Withdraw14Secondary w14V_2 = new Withdraw14Secondary(this, debugComponent);
 
         DepositNode deposit = new DepositNode(this);
-        DecideRestockNode restock = new DecideRestockNode(this, targetItem);
+        DecideRestockNode restock = new DecideRestockNode(this, debugComponent);
 
         executor = new MarkovNodeExecutor(deposit);
         executor.addNormalEdgeToNode(deposit, restock, 1);
@@ -91,8 +92,8 @@ public class MainScript extends Script {
         executor.addNormalEdgeToNode(create, deposit, 1);
 
         executor.addCondEdgeToNode(restock, sell, 1);
-        executor.addCondEdgeToNode(sell, buy, 1);
-        executor.addCondEdgeToNode(buy, deposit, 1);
+        executor.addNormalEdgeToNode(sell, buy, 1);
+        executor.addNormalEdgeToNode(buy, deposit, 1);
     }
 
     @Override

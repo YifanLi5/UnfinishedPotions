@@ -4,7 +4,7 @@ import GrandExchangeUtil.GrandExchangeObserver;
 import GrandExchangeUtil.GrandExchangeOperations;
 import GrandExchangeUtil.GrandExchangePolling;
 import ScriptClasses.MarkovNodeExecutor;
-import Util.HerbAndPotionsEnum;
+import Util.ComponentsEnum;
 import Util.Statics;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.api.Tabs;
@@ -17,12 +17,12 @@ import java.util.TimerTask;
 
 public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExchangeObserver {
     private Script script;
-    private HerbAndPotionsEnum sell;
+    private ComponentsEnum sell;
     private GrandExchangeOperations operations;
     private GrandExchangePolling polling;
     private boolean offerUpdated, offerFinished, doPreventIdleAction = true;
 
-    public GESellNode(Script script, HerbAndPotionsEnum sell) {
+    public GESellNode(Script script, ComponentsEnum sell) {
         this.script = script;
         this.sell = sell;
         this.operations = new GrandExchangeOperations();
@@ -33,7 +33,7 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
     @Override
     public void onGEUpdate(GrandExchange.Box box) {
         GrandExchange ge = script.getGrandExchange();
-        if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY && ge.getItemId(box) == sell.getUnfPotionItemID()){
+        if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY && ge.getItemId(box) == sell.getFinishedItemID()){
             offerFinished = true;
         }
         offerUpdated = true;
@@ -47,22 +47,18 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
 
     @Override
     public int executeNode() throws InterruptedException {
-        if(isSellItemPending() || operations.sellItem(sell.getUnfPotionItemID())){
+        if(isSellItemPending() || operations.sellItem(sell.getFinishedItemID())){
             polling.registerObserver(this);
-
-            if(offerUpdated){
-                boolean successfulCollect = false;
-                int attempts = 0;
-                while(!successfulCollect && attempts < 5){
-                    successfulCollect = operations.collectAll();
-                    attempts++;
-                    MethodProvider.sleep(1000);
-                }
-                if(!successfulCollect)
-                    preventIdleLogout();
+            while(!offerFinished)
+                preventIdleLogout();
+            boolean successfulCollect = false;
+            int attempts = 0;
+            while(!successfulCollect && attempts < 5){
+                successfulCollect = operations.collectAll();
+                attempts++;
+                MethodProvider.sleep(1000);
             }
-            if(offerFinished)
-                polling.removeObserver(this);
+            polling.removeObserver(this);
         }
         return 0;
     }
@@ -70,9 +66,10 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
     private boolean isSellItemPending(){
         GrandExchange ge = script.getGrandExchange();
         for (GrandExchange.Box box : GrandExchange.Box.values())
-            return ge.getItemId(box) == sell.getHerbItemID() &&
-                    (ge.getStatus(box) == GrandExchange.Status.COMPLETING_SALE ||
-                            ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE);
+            if(ge.getItemId(box) == sell.getFinishedItemID()){
+                return ge.getStatus(box) == GrandExchange.Status.COMPLETING_SALE ||
+                        ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE;
+            }
         return false;
     }
 
