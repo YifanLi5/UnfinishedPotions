@@ -10,6 +10,7 @@ import Nodes.CreationNodes.BasicCreation;
 import Nodes.GENodes.GEBuyNode;
 import Nodes.GENodes.GESellNode;
 import Util.ComponentsEnum;
+import Util.NoSuitableNodesException;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.script.ScriptManifest;
 
@@ -20,10 +21,10 @@ import static ScriptClasses.MainScript.SCRIPT_NAME;
 
 @ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
 public class MainScript extends Script {
-    static final String SCRIPT_NAME = "test";
-    static final int BUILD_NUM = 4;
+    static final String SCRIPT_NAME = "unfPotions";
+    static final int BUILD_NUM = 5;
 
-    private ComponentsEnum debugComponent = ComponentsEnum.CLAY;
+    private ComponentsEnum debugComponent = ComponentsEnum.AVANTOE;
 
     MarkovNodeExecutor executor;
     GEBuyNode buy;
@@ -37,13 +38,13 @@ public class MainScript extends Script {
 
     @Override
     public int onLoop() throws InterruptedException {
-        /*try {
+        try {
             return executor.executeThenTraverse();
         } catch (NoSuitableNodesException e) {
             stop(false);
             e.printStackTrace();
-        }*/
-        sell.executeNode();
+        }
+
         return 1000;
     }
 

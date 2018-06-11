@@ -77,7 +77,7 @@ public class GrandExchangeOperations extends API{
         getWidgets().closeOpenInterface();
         if(openGE()){
             if(offerItem(itemID)){
-                if(setSellPrice()){
+                if(set5PercentLower()){
                     return confirmOffer();
                 }
             }
@@ -247,7 +247,7 @@ public class GrandExchangeOperations extends API{
         return false;
     }
 
-    private boolean setSellPrice() throws InterruptedException {
+    private boolean set5PercentLower() throws InterruptedException {
         boolean ready = new ConditionalSleep(1500){
             @Override
             public boolean condition() throws InterruptedException {

@@ -37,6 +37,7 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
         GrandExchange ge = script.getGrandExchange();
         if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY && ge.getItemId(box) == sell.getFinishedItemID()){
             offerFinished = true;
+            script.log("offer finished");
         }
         offerUpdated = true;
     }
@@ -52,15 +53,18 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
         logNode();
         if(!script.getInventory().contains(sell.getFinishedItemName())) {
             if (!withdrawSellItem(sell.getFinishedItemID())) {
-                script.log("sell item not in bank");
+                script.log("sell item not in bank or inventory");
                 return 0;
             }
         }
+
+        polling.registerObserver(this);
         if(isSellItemPending() || operations.sellItem(sell.getFinishedItemID()+1)){
-            polling.registerObserver(this);
-            while(!offerFinished)
+
+            while(!offerFinished){
                 preventIdleLogout();
-                MethodProvider.sleep(1000);
+            }
+            offerFinished = false;
             boolean successfulCollect = false;
             int attempts = 0;
             while(!successfulCollect && attempts < 5){
@@ -68,9 +72,10 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
                 attempts++;
                 MethodProvider.sleep(1000);
             }
-            polling.removeObserver(this);
-        }
 
+            offerFinished = false;
+        }
+        polling.removeObserver(this);
         return 0;
     }
 

@@ -2,7 +2,6 @@ package Nodes.BankingNodes.WithdrawNodes;
 
 import ScriptClasses.MarkovNodeExecutor;
 import Util.ComponentsEnum;
-import Util.Statics;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.script.Script;
 
@@ -29,7 +28,7 @@ public class DecideRestockNode implements MarkovNodeExecutor.ExecutableNode {
         if(primaryRemaining < 14)
             goToGE = true;
 
-        return (int) Statics.randomNormalDist(1000, 200);
+        return 0;
     }
 
     @Override
