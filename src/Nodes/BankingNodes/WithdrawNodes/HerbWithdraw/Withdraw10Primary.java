@@ -10,7 +10,7 @@ public class Withdraw10Primary extends AbstractPrimaryComponentWithdraw {
     }
 
     @Override
-    boolean withdrawHerbs() {
+    boolean withdrawPrimary() {
         return script.getBank().withdraw(components.getPrimaryItemName(), 10);
     }
 

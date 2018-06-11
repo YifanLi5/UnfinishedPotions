@@ -22,7 +22,7 @@ import static ScriptClasses.MainScript.SCRIPT_NAME;
 @ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
 public class MainScript extends Script {
     static final String SCRIPT_NAME = "test";
-    static final int BUILD_NUM = 3;
+    static final int BUILD_NUM = 4;
 
     private ComponentsEnum debugComponent = ComponentsEnum.CLAY;
 

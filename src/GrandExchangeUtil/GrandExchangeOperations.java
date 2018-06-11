@@ -74,8 +74,6 @@ public class GrandExchangeOperations extends API{
     }
 
     public boolean sellItem(int itemID) throws InterruptedException {
-        if(!getInventory().contains(itemID))
-            withdrawSellItem(itemID);
         getWidgets().closeOpenInterface();
         if(openGE()){
             if(offerItem(itemID)){
@@ -88,12 +86,13 @@ public class GrandExchangeOperations extends API{
     }
 
     public boolean collectAll(){
-        List<RS2Widget> list = getWidgets().containingText(ROOT_ID, "Collect");
-        if(list != null && list.size() > 0){
-            RS2Widget collect = list.get(0);
-            if(collect.isVisible())
-                return collect.interact();
-
+        if(openGE()){
+            List<RS2Widget> list = getWidgets().containingText(ROOT_ID, "Collect");
+            if(list != null && list.size() > 0){
+                RS2Widget collect = list.get(0);
+                if(collect.isVisible())
+                    return collect.interact();
+            }
         }
         return false;
     }
@@ -241,23 +240,6 @@ public class GrandExchangeOperations extends API{
     }
 
     //Sell Item helper methods
-    private boolean withdrawSellItem(int itemID) throws InterruptedException {
-        if (getBank().open()) {
-            boolean success = new ConditionalSleep(1000) {
-                @Override
-                public boolean condition() throws InterruptedException {
-                    return getBank().isOpen();
-                }
-            }.sleep();
-            if (success) {
-                if(getBank().enableMode(Bank.BankMode.WITHDRAW_NOTE)){
-                    return bank.withdraw(itemID, Bank.WITHDRAW_ALL);
-                }
-            }
-        }
-        return false;
-    }
-
     private boolean offerItem(int itemID){
         if(inventory.contains(itemID)){
             if(inventory.interact("Offer", itemID)){

@@ -51,7 +51,8 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
 
     @Override
     public int executeNode() throws InterruptedException {
-        if(isBuyItemPending() || operations.buyItem(buy.getPrimaryItemID(), buy.getGeSearchTerm(), 100)){
+        logNode();
+        if(isBuyItemPending() || operations.buyItem(buy.getPrimaryItemID(), buy.getGeSearchTerm(), 14)){
             polling.registerObserver(this);
             while(!offerFinished)
                 preventIdleLogout();
@@ -98,6 +99,11 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
     @Override
     public boolean doConditionalTraverse() {
         return false;
+    }
+
+    @Override
+    public void logNode() {
+        script.log(this.getClass().getSimpleName());
     }
 
     public void stopThread(){

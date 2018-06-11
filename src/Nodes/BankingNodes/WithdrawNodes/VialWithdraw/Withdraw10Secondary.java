@@ -10,7 +10,7 @@ public class Withdraw10Secondary extends AbstractSecondaryWithdraw {
     }
 
     @Override
-    boolean withdrawVials() {
+    boolean withdrawSecondary() {
         return script.getBank().withdraw(components.getSecondaryItemName(), 10);
     }
 

@@ -6,11 +6,13 @@ import GrandExchangeUtil.GrandExchangePolling;
 import ScriptClasses.MarkovNodeExecutor;
 import Util.ComponentsEnum;
 import Util.Statics;
+import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.api.Tabs;
 import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
+import org.osbot.rs07.utility.ConditionalSleep;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -47,6 +49,13 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
 
     @Override
     public int executeNode() throws InterruptedException {
+        logNode();
+        if(script.getInventory().contains(sell.getFinishedItemID())) {
+            if (!withdrawSellItem(sell.getFinishedItemID())) {
+                script.log("sell item not in bank");
+                return 0;
+            }
+        }
         if(isSellItemPending() || operations.sellItem(sell.getFinishedItemID())){
             polling.registerObserver(this);
             while(!offerFinished)
@@ -60,7 +69,26 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
             }
             polling.removeObserver(this);
         }
+
         return 0;
+    }
+
+    private boolean withdrawSellItem(int itemID) throws InterruptedException {
+        Bank bank = script.getBank();
+        if (bank.open()) {
+            boolean success = new ConditionalSleep(1000) {
+                @Override
+                public boolean condition() throws InterruptedException {
+                    return bank.isOpen();
+                }
+            }.sleep();
+            if (success) {
+                if(bank.enableMode(Bank.BankMode.WITHDRAW_NOTE)){
+                    return bank.withdraw(itemID, Bank.WITHDRAW_ALL);
+                }
+            }
+        }
+        return false;
     }
 
     private boolean isSellItemPending(){
@@ -93,6 +121,11 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
     @Override
     public boolean doConditionalTraverse() {
         return false;
+    }
+
+    @Override
+    public void logNode() {
+        script.log(this.getClass().getSimpleName());
     }
 
     public void stopThread(){

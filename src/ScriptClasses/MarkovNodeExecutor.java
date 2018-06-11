@@ -12,7 +12,9 @@ public class MarkovNodeExecutor {
         boolean canExecute() throws InterruptedException;
         int executeNode() throws InterruptedException;
         boolean doConditionalTraverse(); //used by MarkovNodeExecutor to indicate whether a special node traversal is requested
+        void logNode();
     }
+
 
     private class NodeEdge {
         final ExecutableNode u; //source node

@@ -155,7 +155,8 @@ public abstract class AbstractCreationNode implements MarkovNodeExecutor.Executa
         return -1;
     }
 
-    void logNode(){
+    @Override
+    public void logNode() {
         script.log(this.getClass().getSimpleName());
     }
 
