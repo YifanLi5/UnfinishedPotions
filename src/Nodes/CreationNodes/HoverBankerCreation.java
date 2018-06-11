@@ -1,0 +1,65 @@
+package Nodes.CreationNodes;
+
+import Util.ComponentsEnum;
+import org.osbot.rs07.api.Inventory;
+import org.osbot.rs07.api.Menu;
+import org.osbot.rs07.api.Mouse;
+import org.osbot.rs07.api.model.NPC;
+import org.osbot.rs07.api.ui.Option;
+import org.osbot.rs07.input.mouse.EntityDestination;
+import org.osbot.rs07.input.mouse.RectangleDestination;
+import org.osbot.rs07.script.Script;
+import org.osbot.rs07.utility.ConditionalSleep;
+
+import java.util.List;
+
+public class HoverBankerCreation extends AbstractCreationNode {
+    HoverBankerCreation(Script script, ComponentsEnum components) {
+        super(script, components);
+    }
+
+    @Override
+    int waitForPotions() {
+
+        boolean hovered = hoverOverBankOption();
+        Inventory inv = script.getInventory();
+        new ConditionalSleep(25000) {
+            @Override
+            public boolean condition() throws InterruptedException {
+                return !inv.contains(components.getPrimaryItemName()) || !inv.contains(components.getSecondaryItemName());
+            }
+        }.sleep();
+
+        if(hovered)
+            script.getMouse().click(false);
+
+        return 0;
+    }
+
+    private boolean hoverOverBankOption(){
+        NPC banker = script.getNpcs().closest("Banker");
+        Mouse mouse = script.getMouse();
+        Menu menu = script.getMenuAPI();
+        boolean success = false;
+        if(banker != null){
+            boolean found = false;
+            int idx = 0;
+            while(!found){
+                if(mouse.click(new EntityDestination(script.getBot(), banker), true)){
+                    if(menu.isOpen()){
+                        List<Option> options = menu.getMenu();
+                        for(; idx < options.size(); idx++){
+                            if(options.get(idx).action.equals("Bank")){
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            RectangleDestination bankOptionRect = new RectangleDestination(script.getBot(), menu.getOptionRectangle(idx));
+            success = mouse.move(bankOptionRect);
+        }
+        return success;
+    }
+}

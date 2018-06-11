@@ -1,4 +1,4 @@
-package ScriptClasses;
+package Util;
 
 import org.osbot.rs07.script.MethodProvider;
 
@@ -6,8 +6,8 @@ import java.util.Random;
 
 public class Statics {
 
-    public static final int CLEAN_HERB = 257; //ranarr = 257, toadflax = 2998, avantoe = 261
-    public static final int VIAL_OF_WATER = 227;
+    public static final int CLEAN_HERB = 101; //ranarr = 257, toadflax = 2998, avantoe = 261
+    public static final int VIAL_OF_WATER = 221;
     public static final int UNF_POTION = 99;
 
     public static final int MAKE_UNF_POTION_PARENT_ID = 270;
