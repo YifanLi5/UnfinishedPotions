@@ -50,16 +50,17 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
     @Override
     public int executeNode() throws InterruptedException {
         logNode();
-        if(script.getInventory().contains(sell.getFinishedItemID())) {
+        if(!script.getInventory().contains(sell.getFinishedItemName())) {
             if (!withdrawSellItem(sell.getFinishedItemID())) {
                 script.log("sell item not in bank");
                 return 0;
             }
         }
-        if(isSellItemPending() || operations.sellItem(sell.getFinishedItemID())){
+        if(isSellItemPending() || operations.sellItem(sell.getFinishedItemID()+1)){
             polling.registerObserver(this);
             while(!offerFinished)
                 preventIdleLogout();
+                MethodProvider.sleep(1000);
             boolean successfulCollect = false;
             int attempts = 0;
             while(!successfulCollect && attempts < 5){

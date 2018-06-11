@@ -28,7 +28,6 @@ public abstract class AbstractPrimaryComponentWithdraw implements MarkovNodeExec
         if(bank.isOpen())
             if(withdrawPrimary())
                 return (int) Statics.randomNormalDist(500, 100);
-
         return 0;
     }
 

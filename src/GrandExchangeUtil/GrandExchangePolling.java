@@ -1,9 +1,5 @@
 package GrandExchangeUtil;
 
-import org.osbot.Sc;
-import org.osbot.rs07.Bot;
-import org.osbot.rs07.script.API;
-import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 
 import java.util.ArrayList;
@@ -28,7 +24,7 @@ public class GrandExchangePolling {
 
     public void registerObserver(GrandExchangeObserver o){
         this.observers.add(o);
-        if(observers.size() == 1)
+        if(observers.size() > 0)
             startQueryingOffers();
     }
 
@@ -43,7 +39,7 @@ public class GrandExchangePolling {
     }
 
     private void startQueryingOffers(){
-        if(geQuery == null){
+        if(geQuery == null || !queryRunnable.isRunning()){
             geQuery = new Thread(queryRunnable);
             geQuery.start();
         }

@@ -10,7 +10,6 @@ import Nodes.CreationNodes.BasicCreation;
 import Nodes.GENodes.GEBuyNode;
 import Nodes.GENodes.GESellNode;
 import Util.ComponentsEnum;
-import Util.NoSuitableNodesException;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.script.ScriptManifest;
 
@@ -38,13 +37,14 @@ public class MainScript extends Script {
 
     @Override
     public int onLoop() throws InterruptedException {
-        try {
+        /*try {
             return executor.executeThenTraverse();
         } catch (NoSuitableNodesException e) {
             stop(false);
             e.printStackTrace();
-        }
-        return 0;
+        }*/
+        sell.executeNode();
+        return 1000;
     }
 
     private void markovChainSetup(){

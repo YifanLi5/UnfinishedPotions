@@ -242,24 +242,25 @@ public class GrandExchangeOperations extends API{
     //Sell Item helper methods
     private boolean offerItem(int itemID){
         if(inventory.contains(itemID)){
-            if(inventory.interact("Offer", itemID)){
-                boolean correct = new ConditionalSleep(1000){
-                    @Override
-                    public boolean condition() throws InterruptedException {
-                        return isSelectedItemCorrect(itemID);
-                    }
-                }.sleep();
-                return correct;
-            }
+            return inventory.interact("Offer", itemID);
         }
         return false;
     }
 
     private boolean setSellPrice() throws InterruptedException {
-        List<RS2Widget> incPrice = getWidgets().containingActions(ROOT_ID, "-5%");
-        if(incPrice != null){
-            return incPrice.size() > 0 && incPrice.get(0).interact("-5%");
+        boolean ready = new ConditionalSleep(1500){
+            @Override
+            public boolean condition() throws InterruptedException {
+                return getGrandExchange().isSellOfferOpen();
+            }
+        }.sleep();
+        if(ready){
+            List<RS2Widget> incPrice = getWidgets().containingActions(ROOT_ID, "-5%");
+            if(incPrice != null){
+                return incPrice.size() > 0 && incPrice.get(0).interact("-5%");
+            }
         }
+
         return false;
     }
 

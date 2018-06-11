@@ -1,9 +1,6 @@
 package GrandExchangeUtil;
 
-import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.GrandExchange;
-import org.osbot.rs07.script.API;
-import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 
 import java.util.ArrayList;
@@ -61,6 +58,10 @@ public class GrandExchangeRunnable implements Runnable {
 
     public void stop(){
         running.set(false);
+    }
+
+    public boolean isRunning(){
+        return running.get();
     }
 
 }
