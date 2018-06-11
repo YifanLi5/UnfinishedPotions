@@ -37,10 +37,14 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
     @Override
     public void onGEUpdate(GrandExchange.Box box) {
         GrandExchange ge = script.getGrandExchange();
-        if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY && ge.getItemId(box) == buy.getPrimaryItemID()){
-            offerFinished = true;
+        if(ge.getItemId(box) == buy.getPrimaryItemID()){
+            script.log("Buy offer updated");
+            offerUpdated = true;
+            if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY){
+                script.log("Buy offer finished");
+                offerFinished = true;
+            }
         }
-        offerUpdated = true;
     }
 
     @Override
@@ -53,10 +57,12 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
     public int executeNode() throws InterruptedException {
         logNode();
         polling.registerObserver(this);
-        if(isBuyItemPending() || operations.buyItem(buy.getPrimaryItemID(), buy.getGeSearchTerm(), 14)){
+        if(isBuyItemPending() || operations.buyItem(buy.getPrimaryItemID(), buy.getGeSearchTerm(), 1000)){
 
-            while(!offerFinished)
-                preventIdleLogout();
+            while(!offerUpdated)
+                Thread.sleep(1000);
+
+            offerUpdated = false;
             boolean successfulCollect = false;
             int attempts = 0;
             while(!successfulCollect && attempts < 5){
@@ -64,8 +70,13 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
                 attempts++;
                 MethodProvider.sleep(1000);
             }
+
         }
-        polling.removeObserver(this);
+        if(offerFinished){
+            polling.removeObserver(this);
+            offerFinished = false;
+        }
+
         return 1000;
     }
 

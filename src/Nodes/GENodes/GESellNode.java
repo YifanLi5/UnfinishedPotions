@@ -35,9 +35,13 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
     @Override
     public void onGEUpdate(GrandExchange.Box box) {
         GrandExchange ge = script.getGrandExchange();
-        if(ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE && ge.getItemId(box) == sell.getFinishedItemID()){
-            offerFinished = true;
-            script.log("offer finished");
+        if(ge.getItemId(box) == sell.getFinishedItemID()){
+            script.log("Sell offer updated");
+            offerUpdated = true;
+            if(ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE){
+                script.log("Sell offer finished");
+                offerFinished = true;
+            }
         }
     }
 
@@ -59,11 +63,10 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
 
         polling.registerObserver(this);
         if(isSellItemPending() || operations.sellItem(sell.getFinishedItemID()+1)){
-
-            while(!offerFinished){
+            while(!offerUpdated){
                 preventIdleLogout();
             }
-            offerFinished = false;
+            offerUpdated = false;
             boolean successfulCollect = false;
             int attempts = 0;
             while(!successfulCollect && attempts < 5){
@@ -72,9 +75,13 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
                 MethodProvider.sleep(1000);
             }
 
+
+        }
+        if(offerFinished){
+            polling.removeObserver(this);
             offerFinished = false;
         }
-        polling.removeObserver(this);
+
         return 0;
     }
 
