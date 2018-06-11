@@ -230,7 +230,7 @@ public class GrandExchangeOperations extends API{
                                     return isNumberEntryOpen();
                                 }
                             }.sleep();
-                            return entryAllowed && getKeyboard().typeString(String.valueOf(quantity));
+                            return entryAllowed && getKeyboard().typeString(String.valueOf(buyableQuantity));
                         }
                     }
                 }
