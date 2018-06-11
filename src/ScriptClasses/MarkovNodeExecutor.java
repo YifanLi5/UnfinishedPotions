@@ -4,6 +4,7 @@ import Util.NoSuitableNodesException;
 
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class MarkovNodeExecutor {
@@ -53,6 +54,17 @@ public class MarkovNodeExecutor {
             LinkedList<NodeEdge> edges = new LinkedList<>();
             edges.add(new NodeEdge(u, v, edgeExecutionWeight));
             normalAdjMap.put(u, edges);
+        }
+    }
+
+    public void addNormalEdgesToNode(ExecutableNode u, List<ExecutableNode> vs, List<Integer> edgeExecutionWeights){
+        if(vs.size() == edgeExecutionWeights.size()){
+            for(int i = 0; i < vs.size(); i++){
+                addNormalEdgeToNode(u, vs.get(i), edgeExecutionWeights.get(i));
+            }
+        }
+        else{
+            throw new UnsupportedOperationException("list length of 2nd and 3rd argument must match");
         }
     }
 

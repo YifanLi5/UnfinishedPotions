@@ -14,7 +14,7 @@ import org.osbot.rs07.utility.ConditionalSleep;
 import java.util.List;
 
 public class HoverBankerCreation extends AbstractCreationNode {
-    HoverBankerCreation(Script script, ComponentsEnum components) {
+    public HoverBankerCreation(Script script, ComponentsEnum components) {
         super(script, components);
     }
 

@@ -7,7 +7,7 @@ import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 public class WithdrawXPrimary extends AbstractWithdrawPrimary {
-    WithdrawXPrimary(Script script, ComponentsEnum component) {
+    public WithdrawXPrimary(Script script, ComponentsEnum component) {
         super(script, component);
     }
 

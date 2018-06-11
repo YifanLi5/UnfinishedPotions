@@ -11,7 +11,7 @@ public class OptionalInvFixNode implements MarkovNodeExecutor.ExecutableNode{
     private ComponentsEnum components;
     private Script script;
 
-    public OptionalInvFixNode(ComponentsEnum components, Script script) {
+    public OptionalInvFixNode(Script script, ComponentsEnum components) {
         this.components = components;
         this.script = script;
     }
