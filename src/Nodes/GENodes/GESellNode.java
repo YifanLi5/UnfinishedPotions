@@ -35,11 +35,10 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
     @Override
     public void onGEUpdate(GrandExchange.Box box) {
         GrandExchange ge = script.getGrandExchange();
-        if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY && ge.getItemId(box) == sell.getFinishedItemID()){
+        if(ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE && ge.getItemId(box) == sell.getFinishedItemID()){
             offerFinished = true;
             script.log("offer finished");
         }
-        offerUpdated = true;
     }
 
     @Override

@@ -53,7 +53,7 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
     public int executeNode() throws InterruptedException {
         logNode();
         polling.registerObserver(this);
-        if(isBuyItemPending() || operations.buyItem(buy.getPrimaryItemID(), buy.getGeSearchTerm(), 56)){
+        if(isBuyItemPending() || operations.buyItem(buy.getPrimaryItemID(), buy.getGeSearchTerm(), 14)){
 
             while(!offerFinished)
                 preventIdleLogout();

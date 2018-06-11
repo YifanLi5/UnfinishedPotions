@@ -3,16 +3,15 @@ package Nodes.BankingNodes.WithdrawNodes.HerbWithdraw;
 import ScriptClasses.MarkovNodeExecutor;
 import Util.ComponentsEnum;
 import Util.Statics;
-import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.script.Script;
 
-public abstract class AbstractPrimaryComponentWithdraw implements MarkovNodeExecutor.ExecutableNode{
+public abstract class AbstractWithdrawPrimary implements MarkovNodeExecutor.ExecutableNode{
     Script script;
     ComponentsEnum components;
 
-    AbstractPrimaryComponentWithdraw(Script script, ComponentsEnum primary){
+    AbstractWithdrawPrimary(Script script, ComponentsEnum component){
         this.script = script;
-        this.components = primary;
+        this.components = component;
     }
 
     @Override
@@ -24,8 +23,7 @@ public abstract class AbstractPrimaryComponentWithdraw implements MarkovNodeExec
     @Override
     public int executeNode() throws InterruptedException {
         logNode();
-        Bank bank = script.getBank();
-        if(bank.isOpen())
+        if(script.getBank().isOpen())
             if(withdrawPrimary())
                 return (int) Statics.randomNormalDist(500, 100);
         return 0;

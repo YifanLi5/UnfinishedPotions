@@ -15,7 +15,7 @@ public class DepositNode implements MarkovNodeExecutor.ExecutableNode {
 
     @Override
     public boolean canExecute() throws InterruptedException {
-        return true;
+        return script.getNpcs().closestThatContains("Banker").exists();
     }
 
     @Override
@@ -32,7 +32,7 @@ public class DepositNode implements MarkovNodeExecutor.ExecutableNode {
             if(success){
                 if(!script.getInventory().isEmpty()){
                     if(bank.depositAll()){
-                        return (int) Statics.randomNormalDist(1000, 500);
+                        return (int) Statics.randomNormalDist(500, 250);
                     }
                 }
             }
