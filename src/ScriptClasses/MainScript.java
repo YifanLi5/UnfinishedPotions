@@ -11,10 +11,12 @@ import Nodes.BankingNodes.WithdrawNodes.VialWithdraw.Withdraw14Secondary;
 import Nodes.BankingNodes.WithdrawNodes.VialWithdraw.WithdrawXSecondary;
 import Nodes.CreationNodes.AFKCreation;
 import Nodes.CreationNodes.HoverBankerCreation;
+import Nodes.DebuggingNode;
 import Nodes.GENodes.GEBuyNode;
 import Nodes.GENodes.GESellNode;
 import Util.ComponentsEnum;
 import Util.NoSuitableNodesException;
+import Util.Statics;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.script.ScriptManifest;
 
@@ -28,19 +30,23 @@ import static ScriptClasses.MainScript.SCRIPT_NAME;
 
 @ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
 public class MainScript extends Script {
-    static final String SCRIPT_NAME = "unfPotions";
-    static final int BUILD_NUM = 7;
+    static final String SCRIPT_NAME = "unf";
+    static final int BUILD_NUM = 10;
 
-    private ComponentsEnum debugComponent = ComponentsEnum.AVANTOE;
+    private ComponentsEnum debugComponent = ComponentsEnum.TOADFLAX;
 
     MarkovNodeExecutor executor;
     GEBuyNode buy;
     GESellNode sell;
 
+    DebuggingNode debug;
+
     @Override
     public void onStart() throws InterruptedException {
         super.onStart();
+        Statics.debug = this;
         markovChainSetup();
+        //debug = new DebuggingNode(this);
     }
 
     @Override
@@ -51,8 +57,8 @@ public class MainScript extends Script {
             stop(false);
             e.printStackTrace();
         }
-
-        return 1000;
+        return 0;
+        //return debug.executeNode();
     }
 
     private void markovChainSetup(){
@@ -135,6 +141,7 @@ public class MainScript extends Script {
     public void onExit() throws InterruptedException {
         super.onExit();
         buy.stopThread();
+        //debug.stop();
 
     }
 

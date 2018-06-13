@@ -6,11 +6,13 @@ import GrandExchangeUtil.GrandExchangePolling;
 import ScriptClasses.MarkovNodeExecutor;
 import Util.ComponentsEnum;
 import Util.Statics;
+import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.api.Tabs;
 import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
+import org.osbot.rs07.utility.ConditionalSleep;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -56,27 +58,28 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
     @Override
     public int executeNode() throws InterruptedException {
         logNode();
-        polling.registerObserver(this);
-        if(isBuyItemPending() || operations.buyItem(buy.getPrimaryItemID(), buy.getGeSearchTerm(), 1000)){
+        if(withdrawCash()){
+            polling.registerObserver(this);
+            if(isBuyItemPending() || operations.buyItem(buy.getPrimaryItemID(), buy.getGeSearchTerm(), 1000)){
 
-            while(!offerUpdated)
-                Thread.sleep(1000);
+                while(!offerUpdated)
+                    Thread.sleep(1000);
 
-            offerUpdated = false;
-            boolean successfulCollect = false;
-            int attempts = 0;
-            while(!successfulCollect && attempts < 5){
-                successfulCollect = operations.collectAll();
-                attempts++;
-                MethodProvider.sleep(1000);
+                offerUpdated = false;
+                boolean successfulCollect = false;
+                int attempts = 0;
+                while(!successfulCollect && attempts < 5){
+                    successfulCollect = operations.collectAll();
+                    attempts++;
+                    MethodProvider.sleep(1000);
+                }
+
             }
-
+            if(offerFinished){
+                polling.removeObserver(this);
+                offerFinished = false;
+            }
         }
-        if(offerFinished){
-            polling.removeObserver(this);
-            offerFinished = false;
-        }
-
         return 1000;
     }
 
@@ -88,6 +91,25 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
                         ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY;
             }
 
+        return false;
+    }
+
+    private boolean withdrawCash() throws InterruptedException {
+        Bank bank = script.getBank();
+        if(bank.open()){
+            boolean success = new ConditionalSleep(1000){
+                @Override
+                public boolean condition() throws InterruptedException {
+                    return bank.isOpen();
+                }
+            }.sleep();
+            if(success){
+                if(bank.getAmount(995) > 0){
+                    return bank.withdraw(995, Bank.WITHDRAW_ALL);
+                }
+                return true;
+            }
+        }
         return false;
     }
 

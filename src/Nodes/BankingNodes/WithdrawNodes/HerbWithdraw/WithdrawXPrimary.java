@@ -1,6 +1,7 @@
 package Nodes.BankingNodes.WithdrawNodes.HerbWithdraw;
 
 import Util.ComponentsEnum;
+import Util.Statics;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.ui.RS2Widget;
 import org.osbot.rs07.script.Script;
@@ -12,8 +13,10 @@ public class WithdrawXPrimary extends AbstractWithdrawPrimary {
     }
 
     @Override
-    boolean withdrawPrimary() {
+    boolean withdrawPrimary() throws InterruptedException {
         Bank bank = script.getBank();
+        if(!script.getInventory().isEmptyExcept(components.getSecondaryItemName()))
+            script.getBank().depositAllExcept(components.getSecondaryItemName());
         if(bank.interact("Withdraw-X", components.getPrimaryItemName())){
             boolean isOpen = new ConditionalSleep(1000){
                 @Override
@@ -22,6 +25,7 @@ public class WithdrawXPrimary extends AbstractWithdrawPrimary {
                 }
             }.sleep();
             if(isOpen){
+                Statics.longRandomNormalDelay();
                 return bank.withdraw(components.getPrimaryItemName(), 14);
             }
         }

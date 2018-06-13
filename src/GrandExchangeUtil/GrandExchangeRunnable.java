@@ -40,11 +40,17 @@ public class GrandExchangeRunnable implements Runnable {
                 } else {
                     int amtTraded = ge.getAmountTraded(box);
                     int prevAmtTraded = amountTradedMap.get(box);
+                    if(prevAmtTraded == -1){ //for case where offer was just placed
+                        continue;
+                    }
                     if(amtTraded != prevAmtTraded
                             || ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY
                             || ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE){
                         observers.forEach(item -> item.onGEUpdate(box));
                     }
+
+
+                    amountTradedMap.put(box, amtTraded);
                 }
             }
             try {

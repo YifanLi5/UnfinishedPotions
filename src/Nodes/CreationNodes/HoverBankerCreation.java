@@ -1,6 +1,7 @@
 package Nodes.CreationNodes;
 
 import Util.ComponentsEnum;
+import Util.Statics;
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.api.Menu;
 import org.osbot.rs07.api.Mouse;
@@ -19,7 +20,7 @@ public class HoverBankerCreation extends AbstractCreationNode {
     }
 
     @Override
-    int waitForPotions() {
+    int waitForPotions() throws InterruptedException {
 
         boolean hovered = hoverOverBankOption();
         Inventory inv = script.getInventory();
@@ -30,10 +31,11 @@ public class HoverBankerCreation extends AbstractCreationNode {
             }
         }.sleep();
 
-        if(hovered)
+        if(hovered){
+            Statics.shortRandomNormalDelay();
             script.getMouse().click(false);
-
-        return 0;
+        }
+        return (int) Statics.randomNormalDist(1200, 200);
     }
 
     private boolean hoverOverBankOption(){

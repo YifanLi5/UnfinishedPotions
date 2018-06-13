@@ -1,6 +1,7 @@
 package Util;
 
 import org.osbot.rs07.script.MethodProvider;
+import org.osbot.rs07.script.Script;
 
 import java.util.Random;
 
@@ -12,6 +13,8 @@ public class Statics {
 
     public static final int MAKE_UNF_POTION_PARENT_ID = 270;
     public static final int MAKE_UNF_POTION_CHILD_ID = 14;
+
+    public static Script debug;
 
     private Statics(){} //meant to be a constant provider, no constructor
 

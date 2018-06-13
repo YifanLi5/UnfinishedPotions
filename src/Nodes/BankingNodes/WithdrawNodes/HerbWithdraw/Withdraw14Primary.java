@@ -11,6 +11,8 @@ public class Withdraw14Primary extends AbstractWithdrawPrimary {
 
     @Override
     boolean withdrawPrimary() {
+        if(!script.getInventory().isEmptyExcept(components.getSecondaryItemName()))
+            script.getBank().depositAllExcept(components.getSecondaryItemName());
         return script.getBank().withdraw(components.getPrimaryItemName(), 14);
     }
 
