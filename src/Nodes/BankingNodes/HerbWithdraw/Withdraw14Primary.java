@@ -1,11 +1,11 @@
-package Nodes.BankingNodes.WithdrawNodes.HerbWithdraw;
+package Nodes.BankingNodes.HerbWithdraw;
 
 import Util.ComponentsEnum;
 import org.osbot.rs07.script.Script;
 
-public class Withdraw10Primary extends AbstractWithdrawPrimary {
+public class Withdraw14Primary extends AbstractWithdrawPrimary {
 
-    public Withdraw10Primary(Script script, ComponentsEnum targetHerb) {
+    public Withdraw14Primary(Script script, ComponentsEnum targetHerb) {
         super(script, targetHerb);
     }
 
@@ -13,11 +13,11 @@ public class Withdraw10Primary extends AbstractWithdrawPrimary {
     boolean withdrawPrimary() {
         if(!script.getInventory().isEmptyExcept(components.getSecondaryItemName()))
             script.getBank().depositAllExcept(components.getSecondaryItemName());
-        return script.getBank().withdraw(components.getPrimaryItemName(), 10);
+        return script.getBank().withdraw(components.getPrimaryItemName(), 14);
     }
 
     @Override
-    public boolean doConditionalTraverse() {
+    public boolean isJumping() {
         return false;
     }
 }

@@ -1,4 +1,4 @@
-package Nodes.BankingNodes.WithdrawNodes.HerbWithdraw;
+package Nodes.BankingNodes.HerbWithdraw;
 
 import Util.ComponentsEnum;
 import Util.Statics;
@@ -38,7 +38,7 @@ public class WithdrawXPrimary extends AbstractWithdrawPrimary {
     }
 
     @Override
-    public boolean doConditionalTraverse() {
+    public boolean isJumping() {
         return false;
     }
 }

@@ -1,4 +1,4 @@
-package Nodes.BankingNodes.WithdrawNodes.VialWithdraw;
+package Nodes.BankingNodes.VialWithdraw;
 
 import Util.ComponentsEnum;
 import org.osbot.rs07.script.Script;
@@ -17,7 +17,7 @@ public class Withdraw10Secondary extends AbstractWithdrawSecondary {
     }
 
     @Override
-    public boolean doConditionalTraverse() {
+    public boolean isJumping() {
         return false;
     }
 }

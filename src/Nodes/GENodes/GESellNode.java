@@ -1,10 +1,12 @@
 package Nodes.GENodes;
 
-import GrandExchangeUtil.GrandExchangeObserver;
-import GrandExchangeUtil.GrandExchangeOperations;
-import GrandExchangeUtil.GrandExchangePolling;
-import ScriptClasses.MarkovNodeExecutor;
+import Nodes.BankingNodes.DepositNode;
+import Nodes.MarkovChain.Edge;
+import Nodes.MarkovChain.ExecutableNode;
 import Util.ComponentsEnum;
+import Util.GrandExchangeUtil.GrandExchangeObserver;
+import Util.GrandExchangeUtil.GrandExchangeOperations;
+import Util.GrandExchangeUtil.GrandExchangePolling;
 import Util.Statics;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.GrandExchange;
@@ -14,10 +16,12 @@ import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExchangeObserver {
+public class GESellNode implements ExecutableNode, GrandExchangeObserver {
     private Script script;
     private ComponentsEnum sell;
     private GrandExchangeOperations operations;
@@ -25,6 +29,8 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
     private boolean offerUpdated, doPreventIdleAction = true;
 
     GrandExchange.Box box;
+
+    private List<Edge> adjNodes = Arrays.asList(new Edge(DepositNode.class, 1));
 
     public GESellNode(Script script, ComponentsEnum sell) {
         this.script = script;
@@ -98,6 +104,11 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
             }
         }
         return 1000;
+    }
+
+    @Override
+    public List<Edge> getAdjacentNodes() {
+        return adjNodes;
     }
 
     private boolean decreaseOffer() throws InterruptedException {
@@ -205,8 +216,13 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
     }
 
     @Override
-    public boolean doConditionalTraverse() {
+    public boolean isJumping() {
         return false;
+    }
+
+    @Override
+    public Class<? extends ExecutableNode> setJumpTarget() {
+        return null;
     }
 
     @Override

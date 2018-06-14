@@ -1,4 +1,4 @@
-package GrandExchangeUtil;
+package Util.GrandExchangeUtil;
 
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.script.Script;

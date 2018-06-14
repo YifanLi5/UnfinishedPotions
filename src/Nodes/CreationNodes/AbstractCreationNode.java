@@ -1,6 +1,8 @@
 package Nodes.CreationNodes;
 
-import ScriptClasses.MarkovNodeExecutor;
+import Nodes.BankingNodes.DepositNode;
+import Nodes.MarkovChain.Edge;
+import Nodes.MarkovChain.ExecutableNode;
 import Util.ComponentsEnum;
 import Util.Statics;
 import Util.SupplierWithCE;
@@ -12,18 +14,21 @@ import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static Util.Statics.VIAL_OF_WATER;
 import static java.awt.event.KeyEvent.VK_SPACE;
 
-public abstract class AbstractCreationNode implements MarkovNodeExecutor.ExecutableNode {
+public abstract class AbstractCreationNode implements ExecutableNode {
 
     private static final String USE = "Use";
     ComponentsEnum components;
 
     Script script;
+
+    private List<Edge> adjNodes = Arrays.asList(new Edge(DepositNode.class, 1));
 
     AbstractCreationNode(Script script, ComponentsEnum components){
         this.script = script;
@@ -161,6 +166,11 @@ public abstract class AbstractCreationNode implements MarkovNodeExecutor.Executa
     }
 
     @Override
+    public List<Edge> getAdjacentNodes() {
+        return adjNodes;
+    }
+
+    @Override
     public void logNode() {
         script.log(this.getClass().getSimpleName());
     }
@@ -169,7 +179,12 @@ public abstract class AbstractCreationNode implements MarkovNodeExecutor.Executa
     abstract int waitForPotions() throws InterruptedException;
 
     @Override
-    public boolean doConditionalTraverse() {
+    public boolean isJumping() {
         return false;
+    }
+
+    @Override
+    public Class<? extends ExecutableNode> setJumpTarget() {
+        return null;
     }
 }

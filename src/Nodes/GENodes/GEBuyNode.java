@@ -1,10 +1,11 @@
 package Nodes.GENodes;
 
-import GrandExchangeUtil.GrandExchangeObserver;
-import GrandExchangeUtil.GrandExchangeOperations;
-import GrandExchangeUtil.GrandExchangePolling;
-import ScriptClasses.MarkovNodeExecutor;
+import Nodes.MarkovChain.Edge;
+import Nodes.MarkovChain.ExecutableNode;
 import Util.ComponentsEnum;
+import Util.GrandExchangeUtil.GrandExchangeObserver;
+import Util.GrandExchangeUtil.GrandExchangeOperations;
+import Util.GrandExchangeUtil.GrandExchangePolling;
 import Util.Statics;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.GrandExchange;
@@ -15,11 +16,13 @@ import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
 
-public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchangeObserver {
+public class GEBuyNode implements ExecutableNode, GrandExchangeObserver {
 
     private final Script script;
     private GrandExchangeOperations operations;
@@ -27,10 +30,12 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
     private GrandExchangePolling polling;
     private boolean doPreventIdleAction = true;
 
-    int amtTraded;
-    GrandExchange.Box box;
+    private int amtTraded;
+    private GrandExchange.Box box;
 
     private boolean offerUpdated;
+
+    private List<Edge> adjNodes = Arrays.asList(new Edge(GESellNode.class, 1));
 
     public GEBuyNode(Script script, ComponentsEnum buy){
         operations = new GrandExchangeOperations();
@@ -99,6 +104,11 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
             }
         }
         return 1000;
+    }
+
+    @Override
+    public List<Edge> getAdjacentNodes() {
+        return adjNodes;
     }
 
     private boolean increaseOffer() throws InterruptedException {
@@ -188,8 +198,13 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
     }
 
     @Override
-    public boolean doConditionalTraverse() {
+    public boolean isJumping() {
         return false;
+    }
+
+    @Override
+    public Class<? extends ExecutableNode> setJumpTarget() {
+        return null;
     }
 
     @Override
