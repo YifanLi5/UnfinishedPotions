@@ -50,8 +50,6 @@ public class GEBuyNode implements MarkovNodeExecutor.ExecutableNode, GrandExchan
             script.log("Buy offer updated, box: " + box.toString() + " has bought " + amtTraded + "/" + totalAmtToTrade + "items \nrecieved by " + this.getClass().getSimpleName());
             offerUpdated = true;
             if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY){
-                polling.removeObserver(this);
-
                 if(amtTraded == totalAmtToTrade){
                     script.log("Buy offer finished");
                 } else {

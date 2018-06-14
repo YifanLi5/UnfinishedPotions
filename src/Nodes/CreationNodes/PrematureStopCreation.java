@@ -17,7 +17,7 @@ public class PrematureStopCreation extends HoverBankerCreation {
     int waitForPotions() throws InterruptedException {
         Inventory inv = script.getInventory();
         boolean hovered = hoverOverBankOption();
-        int numToCreate = ThreadLocalRandom.current().nextInt(9,14);
+        int numToCreate = ThreadLocalRandom.current().nextInt(11,14);
         new ConditionalSleep(25000) {
             @Override
             public boolean condition() throws InterruptedException {

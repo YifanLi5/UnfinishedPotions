@@ -44,7 +44,6 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
             script.log("Sell offer updated, box: " + box.toString() + " has sold " + amtTraded + "/" + totalAmtToTrade + "items \nrecieved by " + this.getClass().getSimpleName());
             offerUpdated = true;
             if(ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE){
-                polling.removeObserver(this);
                 if(amtTraded == totalAmtToTrade){
                     script.log("Buy offer finished");
                 } else {

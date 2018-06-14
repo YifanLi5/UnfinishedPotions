@@ -95,8 +95,8 @@ public class GrandExchangeOperations extends API{
             getWidgets().closeOpenInterface();
         }
         if(margin[0] < 0 || margin[1] < 0){
-            margin[0] = 2800;
-            margin[1] = 2800;
+            margin[0] = 2700;
+            margin[1] = 2700;
         }
         if(openGE()){
             if(offerItem(itemID)){
@@ -219,10 +219,11 @@ public class GrandExchangeOperations extends API{
                                         }.sleep();
                                         if(offerOpen && setPrice(1)){
                                             if(confirmOffer()){
-                                                offerComplete = new ConditionalSleep(60000){
+                                                GrandExchange.Box predictedBox = findFreeGEBox();
+                                                offerComplete = new ConditionalSleep(5000){
                                                     @Override
                                                     public boolean condition() throws InterruptedException {
-                                                        return grandExchange.getStatus(box) == GrandExchange.Status.FINISHED_SALE;
+                                                        return grandExchange.getStatus(predictedBox) == GrandExchange.Status.FINISHED_SALE;
                                                     }
                                                 }.sleep();
                                                 if(offerComplete){
@@ -233,6 +234,8 @@ public class GrandExchangeOperations extends API{
                                                         result[0] = coinsAfter - coins;
                                                         log("margin: " + Arrays.toString(result));
                                                     }
+                                                } else {
+                                                    log("offer never detected as completed.");
                                                 }
                                             }
                                         }

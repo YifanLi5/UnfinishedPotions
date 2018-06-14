@@ -3,8 +3,8 @@ package GrandExchangeUtil;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.script.Script;
 
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -43,7 +43,12 @@ public class GrandExchangeRunnable implements Runnable {
                         if(amtTraded != prevAmtTraded
                                 || ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY
                                 || ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE){
-                            Collections.synchronizedList(observers).forEach(item -> item.onGEUpdate(box));
+                            for(Iterator<GrandExchangeObserver> iter = observers.iterator(); iter.hasNext();){
+                                GrandExchangeObserver obs = iter.next();
+                                obs.onGEUpdate(box);
+                                if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY)
+                                    iter.remove();
+                            }
                         }
                     }
                     amountTradedMap.put(box, amtTraded);
