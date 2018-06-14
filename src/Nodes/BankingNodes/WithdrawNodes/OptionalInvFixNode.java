@@ -11,7 +11,7 @@ public class OptionalInvFixNode implements MarkovNodeExecutor.ExecutableNode{
     private ComponentsEnum components;
     private Script script;
 
-    public OptionalInvFixNode(ComponentsEnum components, Script script) {
+    public OptionalInvFixNode(Script script, ComponentsEnum components) {
         this.components = components;
         this.script = script;
     }
@@ -25,6 +25,7 @@ public class OptionalInvFixNode implements MarkovNodeExecutor.ExecutableNode{
 
     @Override
     public int executeNode() throws InterruptedException {
+        //logNode();
         Inventory inv = script.getInventory();
         Bank bank = script.getBank();
         if(bank.isOpen()){
@@ -54,6 +55,6 @@ public class OptionalInvFixNode implements MarkovNodeExecutor.ExecutableNode{
 
     @Override
     public void logNode() {
-
+        script.log(this.getClass().getSimpleName());
     }
 }

@@ -3,10 +3,11 @@ package GrandExchangeUtil;
 import org.osbot.rs07.script.Script;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class GrandExchangePolling {
 
-    private ArrayList<GrandExchangeObserver> observers; //subscribed classes to ge offer changes
+    private List<GrandExchangeObserver> observers; //subscribed classes to ge offer changes
     private Thread geQuery;
     GrandExchangeRunnable queryRunnable;
     private static GrandExchangePolling singleton;
@@ -23,13 +24,13 @@ public class GrandExchangePolling {
     }
 
     public void registerObserver(GrandExchangeObserver o){
-        this.observers.add(o);
+        observers.add(o);
         if(observers.size() > 0)
             startQueryingOffers();
     }
 
     public void removeObserver(GrandExchangeObserver o){
-        this.observers.remove(o);
+        observers.remove(o);
         if(observers.isEmpty())
             queryRunnable.stop();
     }

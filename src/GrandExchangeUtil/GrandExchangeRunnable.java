@@ -3,8 +3,9 @@ package GrandExchangeUtil;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.script.Script;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GrandExchangeRunnable implements Runnable {
@@ -12,9 +13,9 @@ public class GrandExchangeRunnable implements Runnable {
     private AtomicBoolean running = new AtomicBoolean(false);
     private Script script;
     private HashMap<GrandExchange.Box, Integer> amountTradedMap;
-    private ArrayList<GrandExchangeObserver> observers;
+    private List<GrandExchangeObserver> observers;
 
-    public GrandExchangeRunnable(ArrayList<GrandExchangeObserver> observers, Script script){
+    public GrandExchangeRunnable(List<GrandExchangeObserver> observers, Script script){
         this.observers = observers;
         this.script = script;
         amountTradedMap = new HashMap<>();
@@ -35,17 +36,24 @@ public class GrandExchangeRunnable implements Runnable {
         }
         while(running.get()){
             for (GrandExchange.Box box : GrandExchange.Box.values()) {
-                if(ge.getStatus(box) == GrandExchange.Status.EMPTY){
-                    amountTradedMap.put(box, -1);
-                } else {
-                    int amtTraded = ge.getAmountTraded(box);
+                if(ge.getStatus(box) != GrandExchange.Status.EMPTY){
                     int prevAmtTraded = amountTradedMap.get(box);
-                    if(amtTraded != prevAmtTraded
-                            || ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY
-                            || ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE){
-                        observers.forEach(item -> item.onGEUpdate(box));
+                    int amtTraded = ge.getAmountTraded(box);
+                    if(prevAmtTraded != -1){
+                        if(amtTraded != prevAmtTraded
+                                || ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY
+                                || ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE){
+                            for(Iterator<GrandExchangeObserver> iter = observers.iterator(); iter.hasNext();){
+                                GrandExchangeObserver obs = iter.next();
+                                obs.onGEUpdate(box);
+                                if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY)
+                                    iter.remove();
+                            }
+                        }
                     }
-                }
+                    amountTradedMap.put(box, amtTraded);
+                } else
+                    amountTradedMap.put(box, -1);
             }
             try {
                 Thread.sleep(1000);

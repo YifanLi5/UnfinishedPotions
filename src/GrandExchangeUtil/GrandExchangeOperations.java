@@ -1,16 +1,16 @@
 package GrandExchangeUtil;
 
-import Util.Statics;
 import org.osbot.rs07.Bot;
-import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.api.ui.RS2Widget;
+import org.osbot.rs07.input.mouse.WidgetDestination;
 import org.osbot.rs07.script.API;
 import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 import java.awt.*;
+import java.util.Arrays;
 import java.util.List;
 
 public class GrandExchangeOperations extends API{
@@ -40,15 +40,12 @@ public class GrandExchangeOperations extends API{
             , BOX7_SELL_PT = new Point(327, 251)
             , BOX8_SELL_PT = new Point(444, 251);
 
-    class GrandExchangeCollectData {
-        int leftBoxItemID = -1;
-        int leftBoxQuantity = -1;
-        int rightBoxItemID = -1;
-        int rightBoxQuantity = -1;
+    public enum BuyPriceModifier {
+        LOW_PRICE_X_101(1.01), LOW_PRICE_X_102(1.02), LOW_PRICE_X_103(1.03), LOW_PRICE_X_104(1.04);
 
-        @Override
-        public String toString() {
-            return "left Item: " + leftBoxItemID + " left quantity: " + leftBoxQuantity + " right Item " + rightBoxItemID + " right box quantity: " + rightBoxQuantity;
+        private double modifier;
+        BuyPriceModifier(double modifier) {
+            this.modifier = modifier;
         }
     }
 
@@ -57,15 +54,15 @@ public class GrandExchangeOperations extends API{
         return super.exchangeContext(iIiiiiiiIiii);
     }
 
-    public boolean buyItem(int itemID, String searchTerm, int quantity) throws InterruptedException {
-        if(!getInventory().contains(995))
-            withdrawCash();
-        getWidgets().closeOpenInterface();
+    public boolean buyItem(int itemID, String searchTerm, int price, int quantity) throws InterruptedException {
+        if(!grandExchange.isOpen()){
+            getWidgets().closeOpenInterface();
+        }
         if(openGE()){
             GrandExchange.Box box = findFreeGEBox();
             if(interactBuyOption(box))
                 if(searchAndSelectItem(searchTerm, itemID))
-                    if(setBuyPrice())
+                    if(setPrice(price))
                         if(setBuyQuantity(quantity))
                             return confirmOffer();
         }
@@ -73,11 +70,63 @@ public class GrandExchangeOperations extends API{
         return false;
     }
 
-    public boolean sellItem(int itemID) throws InterruptedException {
-        getWidgets().closeOpenInterface();
+    public boolean buyItem(int itemID, String searchTerm, int[] margin, int quantity) throws InterruptedException {
+        if(!grandExchange.isOpen()){
+            getWidgets().closeOpenInterface();
+        }
+        if(margin[0] < 0 || margin[1] < 0){
+            margin[0] = 2800;
+            margin[1] = 2800;
+        }
+        if(openGE()){
+            GrandExchange.Box box = findFreeGEBox();
+            if(interactBuyOption(box))
+                if(searchAndSelectItem(searchTerm, itemID))
+                    if(setPrice((margin[0] + margin[1])/2))
+                        if(setBuyQuantity(quantity))
+                            return confirmOffer();
+        }
+
+        return false;
+    }
+
+    public boolean sellItem(int itemID, int[] margin) throws InterruptedException {
+        if(!grandExchange.isOpen()){
+            getWidgets().closeOpenInterface();
+        }
+        if(margin[0] < 0 || margin[1] < 0){
+            margin[0] = 2700;
+            margin[1] = 2700;
+        }
         if(openGE()){
             if(offerItem(itemID)){
-                if(set5PercentLower()){
+                boolean offerOpen = new ConditionalSleep(1000){
+                    @Override
+                    public boolean condition() throws InterruptedException {
+                        return grandExchange.isSellOfferOpen();
+                    }
+                }.sleep();
+                if(offerOpen && setPrice((margin[0] + margin[1])/2)){
+                    return confirmOffer();
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean sellItem(int itemID, int price) throws InterruptedException {
+        if(!grandExchange.isOpen()){
+            getWidgets().closeOpenInterface();
+        }
+        if(openGE()){
+            if(offerItem(itemID)){
+                boolean offerOpen = new ConditionalSleep(1000){
+                    @Override
+                    public boolean condition() throws InterruptedException {
+                        return grandExchange.isSellOfferOpen();
+                    }
+                }.sleep();
+                if(offerOpen && setPrice(price)){
                     return confirmOffer();
                 }
             }
@@ -97,6 +146,33 @@ public class GrandExchangeOperations extends API{
         return false;
     }
 
+    public boolean abortOffersWithItem(String itemName) throws InterruptedException {
+        if(openGE()){
+            List<RS2Widget> pendingOffers = getWidgets().containingText(ROOT_ID, itemName);
+            if(pendingOffers != null && pendingOffers.size() > 0){
+                WidgetDestination offerDestination;
+                for(RS2Widget offer: pendingOffers){
+                    offerDestination = new WidgetDestination(bot, offer);
+                    if(mouse.click(offerDestination,true)){
+                        boolean open = new ConditionalSleep(500) {
+                            @Override
+                            public boolean condition() throws InterruptedException {
+                                return menu.isOpen();
+                            }
+                        }.sleep();
+                        if(open){
+                            if(menu.selectAction("Abort offer")){
+                                sleep(1000);
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean openGE() {
         GrandExchange ge = getGrandExchange();
         if(!ge.isOpen()){
@@ -106,8 +182,7 @@ public class GrandExchangeOperations extends API{
                 return new ConditionalSleep(1000){
                     @Override
                     public boolean condition() throws InterruptedException {
-                        boolean open = didInteraction && ge.isOpen();
-                        return open;
+                        return didInteraction && ge.isOpen();
                     }
                 }.sleep();
             }
@@ -115,22 +190,69 @@ public class GrandExchangeOperations extends API{
         return true;
     }
 
-    //Buy Item helper methods
-    private boolean withdrawCash() throws InterruptedException {
-        if(getBank().open()){
-            boolean success = new ConditionalSleep(1000){
-                @Override
-                public boolean condition() throws InterruptedException {
-                    return getBank().isOpen();
+    public int[] priceCheckItem(int itemID, String searchTerm) throws InterruptedException {
+        GrandExchange.Box box = findFreeGEBox();
+        int[] result = {-1, -1};
+        if(openGE()){
+            if(interactBuyOption(box))
+                if(searchAndSelectItem(searchTerm, itemID)){
+                    if(setPrice(5000)){
+                        int coins = (int) inventory.getAmount(995);
+                        if(confirmOffer()){
+                            boolean offerComplete = new ConditionalSleep(60000){
+                                @Override
+                                public boolean condition() throws InterruptedException {
+                                    return grandExchange.getStatus(box) == GrandExchange.Status.FINISHED_BUY;
+                                }
+                            }.sleep();
+                            if(offerComplete){
+                                if(collectAll()){
+                                    sleep(1000);
+                                    int coinsAfter = (int) inventory.getAmount(995);
+                                    result[1] =  coins - coinsAfter;
+                                    if(offerItem(itemID)){
+                                        boolean offerOpen = new ConditionalSleep(1000){
+                                            @Override
+                                            public boolean condition() throws InterruptedException {
+                                                return grandExchange.isSellOfferOpen();
+                                            }
+                                        }.sleep();
+                                        if(offerOpen && setPrice(1)){
+                                            if(confirmOffer()){
+                                                GrandExchange.Box predictedBox = findFreeGEBox();
+                                                offerComplete = new ConditionalSleep(5000){
+                                                    @Override
+                                                    public boolean condition() throws InterruptedException {
+                                                        return grandExchange.getStatus(predictedBox) == GrandExchange.Status.FINISHED_SALE;
+                                                    }
+                                                }.sleep();
+                                                if(offerComplete){
+                                                    coins = (int) inventory.getAmount(995);
+                                                    if(collectAll()){
+                                                        sleep(1000);
+                                                        coinsAfter = (int) inventory.getAmount(995);
+                                                        result[0] = coinsAfter - coins;
+                                                        log("margin: " + Arrays.toString(result));
+                                                    }
+                                                } else {
+                                                    log("offer never detected as completed.");
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-            }.sleep();
-            if(success){
-                return bank.withdraw(995, Bank.WITHDRAW_ALL_BUT_ONE);
-            }
+
+
         }
-        return false;
+
+        return result;
     }
 
+    //Buy Item helper methods
     private boolean interactBuyOption(GrandExchange.Box box){
         if(box == null){
             log("failed to find a box");
@@ -185,7 +307,44 @@ public class GrandExchangeOperations extends API{
         return false;
     }
 
-    private boolean setBuyPrice() throws InterruptedException {
+    private boolean setPrice(int[] margin, BuyPriceModifier modifier) throws InterruptedException {
+        List<RS2Widget> list = widgets.containingActions(ROOT_ID, "Enter price");
+        if(list != null && list.size() > 0){
+            RS2Widget modifyPrice = list.get(0);
+            if(modifyPrice.interact("Enter price")){
+                boolean entryOpen = new ConditionalSleep(1000){
+                    @Override
+                    public boolean condition() throws InterruptedException {
+                        return isNumberEntryOpen("Set a price for each item");
+                    }
+                }.sleep();
+                return entryOpen && keyboard.typeString(String.valueOf(margin[0] * modifier.modifier));
+
+            }
+        }
+        return false;
+    }
+
+    private boolean setPrice(int price){
+        List<RS2Widget> list = widgets.containingActions(ROOT_ID, "Enter price");
+        if(list != null && list.size() > 0){
+            RS2Widget modifyPrice = list.get(0);
+            if(modifyPrice.interact("Enter price")){
+                boolean entryOpen = new ConditionalSleep(1000){
+                    @Override
+                    public boolean condition() throws InterruptedException {
+                        return isNumberEntryOpen("Set a price for each item");
+                    }
+                }.sleep();
+                if(entryOpen){
+                    return keyboard.typeString(String.valueOf(price));
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean set5PercentHigher() throws InterruptedException {
         List<RS2Widget> incPrice = getWidgets().containingActions(ROOT_ID, "+5%");
         if(incPrice != null){
             return incPrice.size() > 0 && incPrice.get(0).interact("+5%");
@@ -207,12 +366,12 @@ public class GrandExchangeOperations extends API{
                 boolean success = new ConditionalSleep(1000){
                     @Override
                     public boolean condition() throws InterruptedException {
-                        return isNumberEntryOpen();
+                        return isNumberEntryOpen("How many do you wish to buy?");
                     }
                 }.sleep();
                 if(success && getKeyboard().typeString(String.valueOf(quantity))){
                     //check If enough GP
-                    Statics.longRandomNormalDelay();
+                    sleep(1000);
                     RS2Widget totalPriceWidget = widgets.singleFilter(ROOT_ID, widget -> positionEquals(widget.getPosition(), new Point(24, 231)));
                     String msg = totalPriceWidget.getMessage();
                     int totalPrice = Integer.parseInt(msg.substring(0, msg.lastIndexOf('c')-1).replace(",", ""));
@@ -220,17 +379,19 @@ public class GrandExchangeOperations extends API{
                         return true;
                     } else {
                         RS2Widget perItemPrice = widgets.singleFilter(ROOT_ID, widget -> positionEquals(widget.getPosition(), new Point(260, 177)));
-                        msg = perItemPrice.getMessage();
-                        int highPrice = Integer.parseInt(msg.substring(0, msg.lastIndexOf('c')-1).replace(",", ""));
-                        int buyableQuantity = (int) (inventory.getAmount(995)/highPrice);
-                        if(quantitySelection.isVisible() && quantitySelection.interact("Enter quantity")){
-                            boolean entryAllowed = new ConditionalSleep(1000){
-                                @Override
-                                public boolean condition() throws InterruptedException {
-                                    return isNumberEntryOpen();
-                                }
-                            }.sleep();
-                            return entryAllowed && getKeyboard().typeString(String.valueOf(quantity));
+                        if(perItemPrice != null){
+                            msg = perItemPrice.getMessage();
+                            int highPrice = Integer.parseInt(msg.substring(0, msg.lastIndexOf('c')-1).replace(",", ""));
+                            int buyableQuantity = (int) (inventory.getAmount(995)/highPrice);
+                            if(quantitySelection.isVisible() && quantitySelection.interact("Enter quantity")){
+                                boolean entryAllowed = new ConditionalSleep(1000){
+                                    @Override
+                                    public boolean condition() throws InterruptedException {
+                                        return isNumberEntryOpen("How many do you wish to buy?");
+                                    }
+                                }.sleep();
+                                return entryAllowed && getKeyboard().typeString(String.valueOf(buyableQuantity));
+                            }
                         }
                     }
                 }
@@ -328,8 +489,8 @@ public class GrandExchangeOperations extends API{
         return confirm != null && confirm.isVisible() && confirm.interact("Confirm");
     }
 
-    private boolean isNumberEntryOpen(){
-        RS2Widget numberEntry = getWidgets().getWidgetContainingText(162, "How many do you wish to buy?");
+    private boolean isNumberEntryOpen(String textLabel){
+        RS2Widget numberEntry = getWidgets().getWidgetContainingText(162, textLabel);
         return numberEntry != null && numberEntry.isVisible();
     }
 

@@ -4,6 +4,7 @@ import Util.NoSuitableNodesException;
 
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class MarkovNodeExecutor {
@@ -56,6 +57,17 @@ public class MarkovNodeExecutor {
         }
     }
 
+    public void addNormalEdgesToNode(ExecutableNode u, List<ExecutableNode> vs, List<Integer> edgeExecutionWeights){
+        if(vs.size() == edgeExecutionWeights.size()){
+            for(int i = 0; i < vs.size(); i++){
+                addNormalEdgeToNode(u, vs.get(i), edgeExecutionWeights.get(i));
+            }
+        }
+        else{
+            throw new UnsupportedOperationException("list length of 2nd and 3rd argument must match");
+        }
+    }
+
     public void addCondEdgeToNode(ExecutableNode u, ExecutableNode v, int edgeExecutionWeight){
         if(conditionalAdjMap.containsKey(u)){
             LinkedList<NodeEdge> edges = conditionalAdjMap.get(u);
@@ -102,31 +114,18 @@ public class MarkovNodeExecutor {
     sleep times returns are implemented inside the executeNode() method (which returns an int) in each ExecutableNode instance
      */
     public int executeThenTraverse() throws InterruptedException, NoSuitableNodesException {
-        int onLoopSleepTime;
+        int onLoopSleepTime = 500;
+        //Statics.debug.log(current.getClass().getSimpleName() + ".canExecute() ?" );
         if(current.canExecute()){
             onLoopSleepTime = current.executeNode();
-            if(current.doConditionalTraverse()) {
-                conditionalTraverse();
-            }
-            else
-                normalTraverse();
-
+        }
+        if(current.doConditionalTraverse()) {
+            conditionalTraverse();
         }
         else{
-            /*
-            if current canExecute returned false, try to execute all nodes until a nodes canExecute returns true.
-            Throw NoSuitableNodesException if all nodes can not execute.
-            */
-            for(ExecutableNode node: normalAdjMap.keySet()){
-                if(node.canExecute()){
-                    current = node;
-                    return executeThenTraverse();
-                }
-            }
-
-            throw new NoSuitableNodesException("did not find a suitable node that can execute.");
-
+            normalTraverse();
         }
+
         return onLoopSleepTime;
     }
 

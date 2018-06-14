@@ -7,7 +7,7 @@ import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 public class AFKCreation extends AbstractCreationNode {
-    AFKCreation(Script script, ComponentsEnum components) {
+    public AFKCreation(Script script, ComponentsEnum components) {
         super(script, components);
     }
 

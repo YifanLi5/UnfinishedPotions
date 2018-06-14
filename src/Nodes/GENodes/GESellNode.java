@@ -8,7 +8,7 @@ import Util.ComponentsEnum;
 import Util.Statics;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.GrandExchange;
-import org.osbot.rs07.api.Tabs;
+import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
@@ -22,7 +22,9 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
     private ComponentsEnum sell;
     private GrandExchangeOperations operations;
     private GrandExchangePolling polling;
-    private boolean offerUpdated, offerFinished, doPreventIdleAction = true;
+    private boolean offerUpdated, doPreventIdleAction = true;
+
+    GrandExchange.Box box;
 
     public GESellNode(Script script, ComponentsEnum sell) {
         this.script = script;
@@ -35,9 +37,19 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
     @Override
     public void onGEUpdate(GrandExchange.Box box) {
         GrandExchange ge = script.getGrandExchange();
-        if(ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE && ge.getItemId(box) == sell.getFinishedItemID()){
-            offerFinished = true;
-            script.log("offer finished");
+        if(ge.getItemId(box) == sell.getFinishedItemID()){
+            this.box = box;
+            int amtTraded = ge.getAmountTraded(box);
+            int totalAmtToTrade = ge.getAmountToTransfer(box);
+            script.log("Sell offer updated, box: " + box.toString() + " has sold " + amtTraded + "/" + totalAmtToTrade + "items \nrecieved by " + this.getClass().getSimpleName());
+            offerUpdated = true;
+            if(ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE){
+                if(amtTraded == totalAmtToTrade){
+                    script.log("Buy offer finished");
+                } else {
+                    script.log("Offer canceled");
+                }
+            }
         }
     }
 
@@ -50,32 +62,55 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
     @Override
     public int executeNode() throws InterruptedException {
         logNode();
-        if(!script.getInventory().contains(sell.getFinishedItemName())) {
-            if (!withdrawSellItem(sell.getFinishedItemID())) {
-                script.log("sell item not in bank or inventory");
-                return 0;
+        Inventory inv = script.getInventory();
+        if(inv.contains(sell.getFinishedItemName()) || withdrawSellItem(sell.getFinishedItemID())) {
+            if(isSellItemPending()){
+                script.log("canceling previous sell offer");
+                if(operations.abortOffersWithItem(sell.getFinishedItemName())){
+                    collect();
+                }
+            }
+            MethodProvider.sleep(1000);
+            if(inv.getAmount(995) < 5000){
+                script.log("withdrawing cash");
+                withdrawCash();
+            }
+            int[] margin = {-1,-1};
+            if(inv.getAmount(995) >= 5000){
+                margin = operations.priceCheckItem(sell.getFinishedItemID(), sell.getGeSearchTerm());
+            }
+
+            offerUpdated = false;
+            polling.registerObserver(this);
+            if(selectSellOperation(margin)) {
+                int loops = 0;
+                while(!offerUpdated){
+                    loops++;
+                    Thread.sleep(1000);
+                    script.log("Thread: " + Thread.currentThread().getId() + " is spinlocking in GESell");
+                    if(loops > 90){
+                        loops = 0;
+                        decreaseOffer();
+                    }
+                }
+                script.log("Thread: " + Thread.currentThread().getId() + " GESell spinlock released");
+                collect();
             }
         }
+        return 1000;
+    }
 
-        polling.registerObserver(this);
-        if(isSellItemPending() || operations.sellItem(sell.getFinishedItemID()+1)){
-
-            while(!offerFinished){
-                preventIdleLogout();
-            }
-            offerFinished = false;
-            boolean successfulCollect = false;
-            int attempts = 0;
-            while(!successfulCollect && attempts < 5){
-                successfulCollect = operations.collectAll();
-                attempts++;
+    private boolean decreaseOffer() throws InterruptedException {
+        int prevOffer = script.grandExchange.getItemPrice(box);
+        script.log("increasing offer to " + (prevOffer - 25));
+        if(operations.abortOffersWithItem(sell.getFinishedItemName())){
+            MethodProvider.sleep(1000);
+            if(collect()){
                 MethodProvider.sleep(1000);
+                return operations.sellItem(sell.getFinishedItemID(), prevOffer - 25);
             }
-
-            offerFinished = false;
         }
-        polling.removeObserver(this);
-        return 0;
+        return false;
     }
 
     private boolean withdrawSellItem(int itemID) throws InterruptedException {
@@ -96,31 +131,77 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
         return false;
     }
 
+    private boolean collect() throws InterruptedException {
+        boolean successfulCollect = false;
+        int attempts = 0;
+        while(!successfulCollect && attempts < 5){
+            successfulCollect = operations.collectAll();
+            attempts++;
+            MethodProvider.sleep(1000);
+        }
+        if(!successfulCollect){
+            script.log("error in collection");
+            script.stop(false);
+        }
+        return successfulCollect;
+    }
+
     private boolean isSellItemPending(){
         GrandExchange ge = script.getGrandExchange();
         for (GrandExchange.Box box : GrandExchange.Box.values())
             if(ge.getItemId(box) == sell.getFinishedItemID()){
-                return ge.getStatus(box) == GrandExchange.Status.COMPLETING_SALE ||
-                        ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE;
+                if(ge.getStatus(box) == GrandExchange.Status.COMPLETING_SALE ||
+                        ge.getStatus(box) == GrandExchange.Status.PENDING_SALE ||
+                        ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE){
+                    script.log("sell is pending");
+                    return true;
+                }
+
             }
         return false;
     }
 
     private void preventIdleLogout() throws InterruptedException {
         if(doPreventIdleAction){
-            doPreventIdleAction = false;
-            Tabs tabs = script.getTabs();
-            tabs.open(org.osbot.rs07.api.ui.Tab.SKILLS);
-            Statics.shortRandomNormalDelay();
-            tabs.open(org.osbot.rs07.api.ui.Tab.INVENTORY);
-            int nextAction = (int) Statics.randomNormalDist(200000, 25000);
-            new Timer().schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    doPreventIdleAction = true;
-                }
-            }, nextAction);
+
+            int yaw = script.camera.getYawAngle();
+            if(script.camera.moveYaw(yaw + MethodProvider.random(-15, 15))){
+                doPreventIdleAction = false;
+                int nextAction = (int) Statics.randomNormalDist(200000, 25000);
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        doPreventIdleAction = true;
+                    }
+                }, nextAction);
+            }
         }
+    }
+
+    private boolean selectSellOperation(int[] margin) throws InterruptedException {
+        if(margin[1] - margin[0] <= 75){
+            return operations.sellItem(sell.getFinishedItemID()+1, margin[0]);
+        } else {
+            return operations.sellItem(sell.getFinishedItemID()+1, margin);
+        }
+    }
+
+    private boolean withdrawCash() throws InterruptedException {
+        Bank bank = script.getBank();
+        if(bank.open()){
+            boolean success = new ConditionalSleep(1000){
+                @Override
+                public boolean condition() throws InterruptedException {
+                    return bank.isOpen();
+                }
+            }.sleep();
+            if(success){
+                if(bank.getAmount(995) > 0){
+                    return bank.withdraw(995, Bank.WITHDRAW_ALL) && bank.close();
+                }
+            }
+        }
+        return false;
     }
 
     @Override

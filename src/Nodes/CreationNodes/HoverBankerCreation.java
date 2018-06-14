@@ -1,6 +1,7 @@
 package Nodes.CreationNodes;
 
 import Util.ComponentsEnum;
+import Util.Statics;
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.api.Menu;
 import org.osbot.rs07.api.Mouse;
@@ -14,12 +15,12 @@ import org.osbot.rs07.utility.ConditionalSleep;
 import java.util.List;
 
 public class HoverBankerCreation extends AbstractCreationNode {
-    HoverBankerCreation(Script script, ComponentsEnum components) {
+    public HoverBankerCreation(Script script, ComponentsEnum components) {
         super(script, components);
     }
 
     @Override
-    int waitForPotions() {
+    int waitForPotions() throws InterruptedException {
 
         boolean hovered = hoverOverBankOption();
         Inventory inv = script.getInventory();
@@ -30,13 +31,14 @@ public class HoverBankerCreation extends AbstractCreationNode {
             }
         }.sleep();
 
-        if(hovered)
+        if(hovered){
+            Statics.shortRandomNormalDelay();
             script.getMouse().click(false);
-
-        return 0;
+        }
+        return (int) Statics.randomNormalDist(1200, 200);
     }
 
-    private boolean hoverOverBankOption(){
+    boolean hoverOverBankOption(){
         NPC banker = script.getNpcs().closest("Banker");
         Mouse mouse = script.getMouse();
         Menu menu = script.getMenuAPI();
@@ -44,7 +46,8 @@ public class HoverBankerCreation extends AbstractCreationNode {
         if(banker != null){
             boolean found = false;
             int idx = 0;
-            while(!found){
+            int attempts = 0;
+            while(!found && attempts++ < 5){
                 if(mouse.click(new EntityDestination(script.getBot(), banker), true)){
                     if(menu.isOpen()){
                         List<Option> options = menu.getMenu();
@@ -57,8 +60,11 @@ public class HoverBankerCreation extends AbstractCreationNode {
                     }
                 }
             }
-            RectangleDestination bankOptionRect = new RectangleDestination(script.getBot(), menu.getOptionRectangle(idx));
-            success = mouse.move(bankOptionRect);
+            if(found){
+                RectangleDestination bankOptionRect = new RectangleDestination(script.getBot(), menu.getOptionRectangle(idx));
+                success = mouse.move(bankOptionRect);
+            }
+
         }
         return success;
     }

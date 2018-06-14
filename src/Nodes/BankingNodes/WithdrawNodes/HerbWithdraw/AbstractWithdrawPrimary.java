@@ -22,14 +22,16 @@ public abstract class AbstractWithdrawPrimary implements MarkovNodeExecutor.Exec
 
     @Override
     public int executeNode() throws InterruptedException {
-        logNode();
-        if(script.getBank().isOpen())
+        //logNode();
+        if(script.getBank().isOpen()){
             if(withdrawPrimary())
                 return (int) Statics.randomNormalDist(500, 100);
+        }
+
         return 0;
     }
 
-    abstract boolean withdrawPrimary();
+    abstract boolean withdrawPrimary() throws InterruptedException;
 
     @Override
     public void logNode() {

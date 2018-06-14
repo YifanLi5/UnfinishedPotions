@@ -32,12 +32,17 @@ public abstract class AbstractCreationNode implements MarkovNodeExecutor.Executa
 
     @Override
     public boolean canExecute() {
-        return script.getInventory().contains(components.getPrimaryItemName()) && script.getInventory().contains(components.getSecondaryItemName());
+        return new ConditionalSleep(1000){
+            @Override
+            public boolean condition() throws InterruptedException {
+                return script.getInventory().contains(components.getPrimaryItemName()) && script.getInventory().contains(components.getSecondaryItemName());
+            }
+        }.sleep();
     }
 
     @Override
     public int executeNode() throws InterruptedException {
-        logNode();
+        //logNode();
         if(script.getWidgets().closeOpenInterface()){
             if(executeStep(this::combineComponents)){
                 if(executeStep(this::interactMakePotsWidget)){
@@ -161,7 +166,7 @@ public abstract class AbstractCreationNode implements MarkovNodeExecutor.Executa
     }
 
     //define what to do when waiting for potions to finish, returns the sleeptime for onloop.
-    abstract int waitForPotions();
+    abstract int waitForPotions() throws InterruptedException;
 
     @Override
     public boolean doConditionalTraverse() {
