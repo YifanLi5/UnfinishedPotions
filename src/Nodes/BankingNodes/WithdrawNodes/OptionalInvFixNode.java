@@ -25,7 +25,7 @@ public class OptionalInvFixNode implements MarkovNodeExecutor.ExecutableNode{
 
     @Override
     public int executeNode() throws InterruptedException {
-        logNode();
+        //logNode();
         Inventory inv = script.getInventory();
         Bank bank = script.getBank();
         if(bank.isOpen()){

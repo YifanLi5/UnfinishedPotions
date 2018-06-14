@@ -38,7 +38,7 @@ public class HoverBankerCreation extends AbstractCreationNode {
         return (int) Statics.randomNormalDist(1200, 200);
     }
 
-    private boolean hoverOverBankOption(){
+    boolean hoverOverBankOption(){
         NPC banker = script.getNpcs().closest("Banker");
         Mouse mouse = script.getMouse();
         Menu menu = script.getMenuAPI();
@@ -46,7 +46,8 @@ public class HoverBankerCreation extends AbstractCreationNode {
         if(banker != null){
             boolean found = false;
             int idx = 0;
-            while(!found){
+            int attempts = 0;
+            while(!found && attempts++ < 5){
                 if(mouse.click(new EntityDestination(script.getBot(), banker), true)){
                     if(menu.isOpen()){
                         List<Option> options = menu.getMenu();
@@ -59,8 +60,11 @@ public class HoverBankerCreation extends AbstractCreationNode {
                     }
                 }
             }
-            RectangleDestination bankOptionRect = new RectangleDestination(script.getBot(), menu.getOptionRectangle(idx));
-            success = mouse.move(bankOptionRect);
+            if(found){
+                RectangleDestination bankOptionRect = new RectangleDestination(script.getBot(), menu.getOptionRectangle(idx));
+                success = mouse.move(bankOptionRect);
+            }
+
         }
         return success;
     }

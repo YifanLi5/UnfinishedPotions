@@ -1,7 +1,6 @@
 package ScriptClasses;
 
 import Util.NoSuitableNodesException;
-import Util.Statics;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -116,7 +115,7 @@ public class MarkovNodeExecutor {
      */
     public int executeThenTraverse() throws InterruptedException, NoSuitableNodesException {
         int onLoopSleepTime = 500;
-        Statics.debug.log(current.getClass().getSimpleName() + ".canExecute() ?" );
+        //Statics.debug.log(current.getClass().getSimpleName() + ".canExecute() ?" );
         if(current.canExecute()){
             onLoopSleepTime = current.executeNode();
         }

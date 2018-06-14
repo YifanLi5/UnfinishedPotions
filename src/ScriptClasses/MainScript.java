@@ -11,6 +11,7 @@ import Nodes.BankingNodes.WithdrawNodes.VialWithdraw.Withdraw14Secondary;
 import Nodes.BankingNodes.WithdrawNodes.VialWithdraw.WithdrawXSecondary;
 import Nodes.CreationNodes.AFKCreation;
 import Nodes.CreationNodes.HoverBankerCreation;
+import Nodes.CreationNodes.PrematureStopCreation;
 import Nodes.DebuggingNode;
 import Nodes.GENodes.GEBuyNode;
 import Nodes.GENodes.GESellNode;
@@ -30,35 +31,44 @@ import static ScriptClasses.MainScript.SCRIPT_NAME;
 
 @ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
 public class MainScript extends Script {
-    static final String SCRIPT_NAME = "unf";
-    static final int BUILD_NUM = 10;
+    static final String SCRIPT_NAME = "buy/sell";
+    static final int BUILD_NUM = 3;
 
-    private ComponentsEnum debugComponent = ComponentsEnum.TOADFLAX;
+    private ComponentsEnum debugComponent = ComponentsEnum.AVANTOE;
 
     MarkovNodeExecutor executor;
     GEBuyNode buy;
     GESellNode sell;
 
     DebuggingNode debug;
+    boolean runDebugNode = false;
 
     @Override
     public void onStart() throws InterruptedException {
         super.onStart();
         Statics.debug = this;
-        markovChainSetup();
-        //debug = new DebuggingNode(this);
+        if(runDebugNode){
+            debug = new DebuggingNode(this);
+        } else {
+            markovChainSetup();
+            camera.movePitch(random(60, 67));
+        }
     }
 
     @Override
     public int onLoop() throws InterruptedException {
-        try {
-            return executor.executeThenTraverse();
-        } catch (NoSuitableNodesException e) {
-            stop(false);
-            e.printStackTrace();
+        if(runDebugNode){
+            return debug.executeNode();
+        }
+        else {
+            try {
+                return executor.executeThenTraverse();
+            } catch (NoSuitableNodesException e) {
+                stop(false);
+                e.printStackTrace();
+            }
         }
         return 0;
-        //return debug.executeNode();
     }
 
     private void markovChainSetup(){
@@ -68,8 +78,9 @@ public class MainScript extends Script {
         OptionalInvFixNode fix = new OptionalInvFixNode(this, debugComponent);
         AFKCreation afk = new AFKCreation(this, debugComponent);
         HoverBankerCreation hover = new HoverBankerCreation(this, debugComponent);
-        List<MarkovNodeExecutor.ExecutableNode> postWithdrawNodes = new ArrayList<>(Arrays.asList(fix, afk, hover));
-        List<Integer> postWithdrawNodesExeWeights = new ArrayList<>(Arrays.asList(50, 30, 70));
+        PrematureStopCreation premature = new PrematureStopCreation(this, debugComponent);
+        List<MarkovNodeExecutor.ExecutableNode> postWithdrawNodes = new ArrayList<>(Arrays.asList(fix, afk, hover, premature));
+        List<Integer> postWithdrawNodesExeWeights = new ArrayList<>(Arrays.asList(70, 50, 30, 30));
 
         DepositNode deposit = new DepositNode(this);
         DecideRestockNode restock = new DecideRestockNode(this, debugComponent);
@@ -78,25 +89,25 @@ public class MainScript extends Script {
         Withdraw14Primary w14P_1 = new Withdraw14Primary(this, debugComponent);
         WithdrawXPrimary wXP_1 = new WithdrawXPrimary(this, debugComponent);
         List<MarkovNodeExecutor.ExecutableNode> withdrawPrimary_1 = new ArrayList<>(Arrays.asList(w10P_1, w14P_1, wXP_1));
-        List<Integer> withdrawPrimary_1_ExeWeights = new ArrayList<>(Arrays.asList(1, 50, 1));
+        List<Integer> withdrawPrimary_1_ExeWeights = new ArrayList<>(Arrays.asList(2, 50, 4));
 
         Withdraw10Secondary w10S_1 = new Withdraw10Secondary(this, debugComponent);
         Withdraw14Secondary w14S_1 = new Withdraw14Secondary(this, debugComponent);
         WithdrawXSecondary wXS_1 = new WithdrawXSecondary(this, debugComponent);
         List<MarkovNodeExecutor.ExecutableNode> withdrawSecondary_1 = new ArrayList<>(Arrays.asList(w10S_1, w14S_1, wXS_1));
-        List<Integer> withdrawSecondary_1_ExeWeights = new ArrayList<>(Arrays.asList(1, 50, 1));
+        List<Integer> withdrawSecondary_1_ExeWeights = new ArrayList<>(Arrays.asList(2, 50, 4));
 
         Withdraw10Primary w10P_2 = new Withdraw10Primary(this, debugComponent);
         Withdraw14Primary w14P_2 = new Withdraw14Primary(this, debugComponent);
         WithdrawXPrimary wXP_2 = new WithdrawXPrimary(this, debugComponent);
         List<MarkovNodeExecutor.ExecutableNode> withdrawPrimary_2 = new ArrayList<>(Arrays.asList(w10P_2, w14P_2, wXP_2));
-        List<Integer> withdrawPrimary_2_ExeWeights = new ArrayList<>(Arrays.asList(1, 100, 1));
+        List<Integer> withdrawPrimary_2_ExeWeights = new ArrayList<>(Arrays.asList(3, 100, 2));
 
         Withdraw10Secondary w10S_2 = new Withdraw10Secondary(this, debugComponent);
         Withdraw14Secondary w14S_2 = new Withdraw14Secondary(this, debugComponent);
         WithdrawXSecondary wXS_2 = new WithdrawXSecondary(this, debugComponent);
         List<MarkovNodeExecutor.ExecutableNode> withdrawSecondary_2 = new ArrayList<>(Arrays.asList(w10S_2, w14S_2, wXS_2));
-        List<Integer> withdrawSecondary_2_ExeWeights = new ArrayList<>(Arrays.asList(1, 100, 1));
+        List<Integer> withdrawSecondary_2_ExeWeights = new ArrayList<>(Arrays.asList(2, 100, 3));
 
         executor = new MarkovNodeExecutor(deposit);
         executor.addNormalEdgeToNode(deposit, restock, 1);
@@ -127,6 +138,7 @@ public class MainScript extends Script {
 
         executor.addNormalEdgeToNode(afk, deposit, 1);
         executor.addNormalEdgeToNode(hover, deposit, 1);
+        executor.addNormalEdgeToNode(premature, deposit, 1);
     }
 
     @Override
@@ -140,9 +152,12 @@ public class MainScript extends Script {
     @Override
     public void onExit() throws InterruptedException {
         super.onExit();
-        buy.stopThread();
-        //debug.stop();
-
+        if(runDebugNode){
+            debug.stop();
+        } else{
+            buy.stopThread();
+            sell.stopThread();
+        }
     }
 
 

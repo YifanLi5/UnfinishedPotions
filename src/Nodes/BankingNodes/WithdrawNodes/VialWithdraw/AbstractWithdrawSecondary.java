@@ -21,7 +21,7 @@ public abstract class AbstractWithdrawSecondary implements MarkovNodeExecutor.Ex
 
     @Override
     public int executeNode() throws InterruptedException {
-        logNode();
+        //logNode();
         if(script.getBank().isOpen()){
             if(withdrawSecondary())
                 return (int) Statics.randomNormalDist(500, 100);

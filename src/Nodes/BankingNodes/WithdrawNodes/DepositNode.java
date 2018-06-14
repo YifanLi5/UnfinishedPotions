@@ -20,7 +20,7 @@ public class DepositNode implements MarkovNodeExecutor.ExecutableNode {
 
     @Override
     public int executeNode() throws InterruptedException {
-        logNode();
+        //logNode();
         Bank bank = script.getBank();
         if(bank.open()){
             boolean success = new ConditionalSleep(1000){

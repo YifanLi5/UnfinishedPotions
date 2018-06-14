@@ -22,7 +22,7 @@ public class DecideRestockNode implements MarkovNodeExecutor.ExecutableNode {
 
     @Override
     public int executeNode() throws InterruptedException {
-        logNode();
+        //logNode();
         Bank bank = script.getBank();
         int primaryRemaining = (int) bank.getAmount(item.getPrimaryItemName());
         if(primaryRemaining < 14)

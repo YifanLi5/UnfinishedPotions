@@ -42,7 +42,7 @@ public abstract class AbstractCreationNode implements MarkovNodeExecutor.Executa
 
     @Override
     public int executeNode() throws InterruptedException {
-        logNode();
+        //logNode();
         if(script.getWidgets().closeOpenInterface()){
             if(executeStep(this::combineComponents)){
                 if(executeStep(this::interactMakePotsWidget)){
