@@ -21,7 +21,6 @@ public abstract class AbstractWithdrawPrimary implements ExecutableNode{
     Script script;
     ComponentsEnum components;
 
-    private boolean alreadyWithdrawnSecondary;
     private List<Edge> preSecondaryEdges = Arrays.asList(
             new Edge(Withdraw10Secondary.class, 5),
             new Edge(Withdraw14Secondary.class, 90),
@@ -46,10 +45,11 @@ public abstract class AbstractWithdrawPrimary implements ExecutableNode{
 
     @Override
     public int executeNode() throws InterruptedException {
-        //logNode();
+        if(Statics.logNodes){
+            logNode();
+        }
         Bank bank = script.getBank();
         if(bank.isOpen()){
-            alreadyWithdrawnSecondary = script.getInventory().contains(components.getSecondaryItemName());
             if(bank.enableMode(Bank.BankMode.WITHDRAW_ITEM)){
                 if(withdrawPrimary())
                     return (int) Statics.randomNormalDist(500, 100);
@@ -68,7 +68,8 @@ public abstract class AbstractWithdrawPrimary implements ExecutableNode{
 
     @Override
     public List<Edge> getAdjacentNodes() {
-        return alreadyWithdrawnSecondary ? postSecondaryEdges : preSecondaryEdges;
+        boolean hasSecondary = script.getInventory().contains(components.getSecondaryItemName());
+        return hasSecondary ? postSecondaryEdges : preSecondaryEdges;
     }
 
     @Override

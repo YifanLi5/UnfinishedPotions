@@ -1,6 +1,5 @@
 package Nodes.GENodes;
 
-import Nodes.BankingNodes.DepositNode;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
 import Util.ComponentsEnum;
@@ -30,7 +29,7 @@ public class GESellNode implements ExecutableNode, GrandExchangeObserver {
 
     GrandExchange.Box box;
 
-    private List<Edge> adjNodes = Arrays.asList(new Edge(DepositNode.class, 1));
+    private List<Edge> adjNodes = Arrays.asList(new Edge(GEBuyNode.class, 1));
 
     public GESellNode(Script script, ComponentsEnum sell) {
         this.script = script;
@@ -67,7 +66,9 @@ public class GESellNode implements ExecutableNode, GrandExchangeObserver {
 
     @Override
     public int executeNode() throws InterruptedException {
-        logNode();
+        if(Statics.logNodes){
+            logNode();
+        }
         Inventory inv = script.getInventory();
         if(inv.contains(sell.getFinishedItemName()) || withdrawSellItem(sell.getFinishedItemID())) {
             if(isSellItemPending()){

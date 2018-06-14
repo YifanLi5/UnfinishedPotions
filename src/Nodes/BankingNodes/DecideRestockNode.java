@@ -10,6 +10,7 @@ import Nodes.GENodes.GESellNode;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
 import Util.ComponentsEnum;
+import Util.Statics;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.script.Script;
 
@@ -44,7 +45,9 @@ public class DecideRestockNode implements ExecutableNode {
 
     @Override
     public int executeNode() throws InterruptedException {
-        //logNode();
+        if(Statics.logNodes){
+            logNode();
+        }
         Bank bank = script.getBank();
         int primaryRemaining = (int) bank.getAmount(item.getPrimaryItemName());
         if(primaryRemaining < 14)

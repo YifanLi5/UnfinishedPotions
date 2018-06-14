@@ -27,7 +27,9 @@ public class DepositNode implements ExecutableNode {
 
     @Override
     public int executeNode() throws InterruptedException {
-        //logNode();
+        if(Statics.logNodes){
+            logNode();
+        }
         Bank bank = script.getBank();
         if(bank.open()){
             boolean success = new ConditionalSleep(1000){

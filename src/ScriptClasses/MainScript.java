@@ -29,7 +29,7 @@ import static ScriptClasses.MainScript.SCRIPT_NAME;
 @ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
 public class MainScript extends Script {
     static final String SCRIPT_NAME = "new markov class";
-    static final int BUILD_NUM = 0;
+    static final int BUILD_NUM = 2;
     private ComponentsEnum debugComponent = ComponentsEnum.AVANTOE;
 
     private MarkovNodeExecutor executor;
@@ -42,7 +42,7 @@ public class MainScript extends Script {
     @Override
     public void onStart() throws InterruptedException {
         super.onStart();
-        Statics.debug = this;
+        Statics.script = this;
         if(runDebugNode){
             debug = new DebuggingNode(this);
         } else {
@@ -81,7 +81,7 @@ public class MainScript extends Script {
         buy = new GEBuyNode(this, debugComponent);
         sell = new GESellNode(this, debugComponent);
 
-        executor = new MarkovNodeExecutor(deposit, w10P, w14P, wXP, w10S, w14S, wXS, restock, deposit, fix, afk, hover, premature);
+        executor = new MarkovNodeExecutor(deposit, w10P, w14P, wXP, w10S, w14S, wXS, restock, deposit, fix, afk, hover, premature, buy, sell);
     }
 
     @Override

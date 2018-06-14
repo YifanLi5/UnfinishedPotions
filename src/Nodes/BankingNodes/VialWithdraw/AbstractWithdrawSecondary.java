@@ -21,13 +21,12 @@ public abstract class AbstractWithdrawSecondary implements ExecutableNode{
     Script script;
     ComponentsEnum components;
 
-    private boolean alreadyWithdrawnSecondary;
-    private List<Edge> preSecondaryEdges = Arrays.asList(
+    private List<Edge> prePrimaryNodes = Arrays.asList(
             new Edge(Withdraw10Primary.class, 5),
             new Edge(Withdraw14Primary.class, 90),
             new Edge(WithdrawXPrimary.class, 10));
 
-    private List<Edge> postSecondaryEdges = Arrays.asList(
+    private List<Edge> postPrimaryNodes = Arrays.asList(
             new Edge(OptionalInvFixNode.class, 70),
             new Edge(AFKCreation.class, 50),
             new Edge(HoverBankerCreation.class, 50),
@@ -45,10 +44,11 @@ public abstract class AbstractWithdrawSecondary implements ExecutableNode{
 
     @Override
     public int executeNode() throws InterruptedException {
-        //logNode();
+        if(Statics.logNodes){
+            logNode();
+        }
         Bank bank = script.getBank();
         if(bank.isOpen()){
-            alreadyWithdrawnSecondary = script.getInventory().contains(components.getSecondaryItemName());
             if(bank.enableMode(Bank.BankMode.WITHDRAW_ITEM)){
                 if(withdrawSecondary())
                     return (int) Statics.randomNormalDist(500, 100);
@@ -68,7 +68,8 @@ public abstract class AbstractWithdrawSecondary implements ExecutableNode{
 
     @Override
     public List<Edge> getAdjacentNodes() {
-        return alreadyWithdrawnSecondary ? postSecondaryEdges : preSecondaryEdges;
+        boolean hasPrimary = script.getInventory().contains(components.getPrimaryItemName());
+        return hasPrimary ? postPrimaryNodes : prePrimaryNodes;
     }
 
     @Override

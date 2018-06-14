@@ -18,7 +18,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static Util.Statics.VIAL_OF_WATER;
 import static java.awt.event.KeyEvent.VK_SPACE;
 
 public abstract class AbstractCreationNode implements ExecutableNode {
@@ -123,7 +122,7 @@ public abstract class AbstractCreationNode implements ExecutableNode {
 
             //failsafe, if the above doesnt work
             if(inv.deselectItem()){
-                if(inv.interact("Use", VIAL_OF_WATER)){
+                if(inv.interact("Use", components.getSecondaryItemName())){
                     return inv.interact("Use", components.getPrimaryItemID());
                 }
             }

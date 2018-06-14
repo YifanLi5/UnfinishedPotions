@@ -30,6 +30,9 @@ public class OptionalInvFixNode implements ExecutableNode{
 
     @Override
     public boolean canExecute() throws InterruptedException {
+        if(Statics.logNodes){
+            logNode();
+        }
         Inventory inv = script.getInventory();
         return inv.getAmount(components.getPrimaryItemName()) != 14
                 || inv.getAmount(components.getSecondaryItemName()) != 14;
