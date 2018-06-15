@@ -24,6 +24,8 @@ public abstract class AbstractCreationNode implements ExecutableNode {
 
     private static final String USE = "Use";
     ComponentsEnum components;
+    int secondaryCount;
+    int primaryCount;
 
     Script script;
 
@@ -49,6 +51,10 @@ public abstract class AbstractCreationNode implements ExecutableNode {
         //logNode();
         if(script.getWidgets().closeOpenInterface()){
             if(executeStep(this::combineComponents)){
+                if(this instanceof PrematureStopCreation){
+                    secondaryCount = (int) script.getInventory().getAmount(components.getSecondaryItemName());
+                    primaryCount = (int) script.getInventory().getAmount(components.getPrimaryItemName());
+                }
                 if(executeStep(this::interactMakePotsWidget)){
                     return waitForPotions();
                 }

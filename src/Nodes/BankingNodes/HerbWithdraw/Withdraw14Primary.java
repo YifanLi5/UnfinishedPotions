@@ -1,7 +1,10 @@
 package Nodes.BankingNodes.HerbWithdraw;
 
 import Util.ComponentsEnum;
+import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.script.Script;
+
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Withdraw14Primary extends AbstractWithdrawPrimary {
 
@@ -11,8 +14,11 @@ public class Withdraw14Primary extends AbstractWithdrawPrimary {
 
     @Override
     boolean withdrawPrimary() {
-        if(!script.getInventory().isEmptyExcept(components.getSecondaryItemName()))
-            script.getBank().depositAllExcept(components.getSecondaryItemName());
+        if(script.getInventory().contains(components.getSecondaryItemName())){
+            if(ThreadLocalRandom.current().nextBoolean()){
+                return script.getBank().withdraw(components.getPrimaryItemName(), Bank.WITHDRAW_ALL);
+            }
+        }
         return script.getBank().withdraw(components.getPrimaryItemName(), 14);
     }
 

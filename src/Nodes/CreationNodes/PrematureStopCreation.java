@@ -6,8 +6,6 @@ import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
-import java.util.concurrent.ThreadLocalRandom;
-
 public class PrematureStopCreation extends HoverBankerCreation {
     public PrematureStopCreation(Script script, ComponentsEnum components) {
         super(script, components);
@@ -17,11 +15,11 @@ public class PrematureStopCreation extends HoverBankerCreation {
     int waitForPotions() throws InterruptedException {
         Inventory inv = script.getInventory();
         boolean hovered = hoverOverBankOption();
-        int numToCreate = ThreadLocalRandom.current().nextInt(11,14);
+        int maxCreatable = primaryCount > secondaryCount ? secondaryCount : primaryCount;
         new ConditionalSleep(25000) {
             @Override
-            public boolean condition() throws InterruptedException {
-                return inv.getAmount(components.getFinishedItemName()) >= numToCreate;
+            public boolean condition() {
+                return inv.getAmount(components.getFinishedItemName()) >= maxCreatable-1;
             }
         }.sleep();
 

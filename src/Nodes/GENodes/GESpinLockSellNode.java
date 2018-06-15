@@ -15,23 +15,25 @@ import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class GESellNode implements ExecutableNode, GrandExchangeObserver {
+public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver {
     private Script script;
     private ComponentsEnum sell;
     private GrandExchangeOperations operations;
     private GrandExchangePolling polling;
     private boolean offerUpdated, doPreventIdleAction = true;
+    int amtTraded;
+    private static int primaryComponentBuyPrice = 0;
 
     GrandExchange.Box box;
 
-    private List<Edge> adjNodes = Arrays.asList(new Edge(GEBuyNode.class, 1));
+    private List<Edge> adjNodes = Collections.singletonList(new Edge(GESpinLockBuyNode.class, 1));
 
-    public GESellNode(Script script, ComponentsEnum sell) {
+    public GESpinLockSellNode(Script script, ComponentsEnum sell) {
         this.script = script;
         this.sell = sell;
         this.operations = new GrandExchangeOperations();
@@ -44,6 +46,7 @@ public class GESellNode implements ExecutableNode, GrandExchangeObserver {
         GrandExchange ge = script.getGrandExchange();
         if(ge.getItemId(box) == sell.getFinishedItemID()){
             this.box = box;
+            amtTraded = ge.getAmountTraded(box);
             int amtTraded = ge.getAmountTraded(box);
             int totalAmtToTrade = ge.getAmountToTransfer(box);
             script.log("Sell offer updated, box: " + box.toString() + " has sold " + amtTraded + "/" + totalAmtToTrade + "items \nrecieved by " + this.getClass().getSimpleName());
@@ -85,13 +88,13 @@ public class GESellNode implements ExecutableNode, GrandExchangeObserver {
             int[] margin = {-1,-1};
             if(inv.getAmount(995) >= 5000){
                 margin = operations.priceCheckItem(sell.getFinishedItemID(), sell.getGeSearchTerm());
+                GESpinLockBuyNode.setFinishedPotionMargin(margin);
             }
-
             offerUpdated = false;
             polling.registerObserver(this);
             if(selectSellOperation(margin)) {
                 int loops = 0;
-                while(!offerUpdated){
+                while(!offerUpdated && amtTraded < 14){
                     loops++;
                     Thread.sleep(1000);
                     script.log("Thread: " + Thread.currentThread().getId() + " is spinlocking in GESell");
@@ -110,6 +113,10 @@ public class GESellNode implements ExecutableNode, GrandExchangeObserver {
     @Override
     public List<Edge> getAdjacentNodes() {
         return adjNodes;
+    }
+
+    public static void setPrimaryComponentBuyPrice(int primaryComponentBuyPrice) {
+        GESpinLockSellNode.primaryComponentBuyPrice = primaryComponentBuyPrice;
     }
 
     private boolean decreaseOffer() throws InterruptedException {
@@ -151,10 +158,6 @@ public class GESellNode implements ExecutableNode, GrandExchangeObserver {
             attempts++;
             MethodProvider.sleep(1000);
         }
-        if(!successfulCollect){
-            script.log("error in collection");
-            script.stop(false);
-        }
         return successfulCollect;
     }
 
@@ -191,7 +194,7 @@ public class GESellNode implements ExecutableNode, GrandExchangeObserver {
     }
 
     private boolean selectSellOperation(int[] margin) throws InterruptedException {
-        if(margin[1] - margin[0] <= 75){
+        if(margin[1] - margin[0] <= 75 || margin[0] - primaryComponentBuyPrice >= 175){
             return operations.sellItem(sell.getFinishedItemID()+1, margin[0]);
         } else {
             return operations.sellItem(sell.getFinishedItemID()+1, margin);

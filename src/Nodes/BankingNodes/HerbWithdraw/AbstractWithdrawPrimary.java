@@ -27,9 +27,9 @@ public abstract class AbstractWithdrawPrimary implements ExecutableNode{
             new Edge(WithdrawXSecondary.class, 10));
 
     private List<Edge> postSecondaryEdges = Arrays.asList(
-            new Edge(OptionalInvFixNode.class, 70),
+            new Edge(OptionalInvFixNode.class, 100),
             new Edge(AFKCreation.class, 50),
-            new Edge(HoverBankerCreation.class, 50),
+            new Edge(HoverBankerCreation.class, 35),
             new Edge(PrematureStopCreation.class, 30));
 
     AbstractWithdrawPrimary(Script script, ComponentsEnum component){

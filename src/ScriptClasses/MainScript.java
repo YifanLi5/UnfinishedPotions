@@ -13,8 +13,8 @@ import Nodes.CreationNodes.AFKCreation;
 import Nodes.CreationNodes.HoverBankerCreation;
 import Nodes.CreationNodes.PrematureStopCreation;
 import Nodes.DebuggingNode;
-import Nodes.GENodes.GEBuyNode;
-import Nodes.GENodes.GESellNode;
+import Nodes.GENodes.GESpinLockBuyNode;
+import Nodes.GENodes.GESpinLockSellNode;
 import Nodes.MarkovChain.MarkovNodeExecutor;
 import Util.ComponentsEnum;
 import Util.Statics;
@@ -28,13 +28,13 @@ import static ScriptClasses.MainScript.SCRIPT_NAME;
 
 @ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
 public class MainScript extends Script {
-    static final String SCRIPT_NAME = "new markov class";
-    static final int BUILD_NUM = 2;
-    private ComponentsEnum debugComponent = ComponentsEnum.AVANTOE;
+    static final String SCRIPT_NAME = "spinlock";
+    static final int BUILD_NUM = 5;
+    private ComponentsEnum debugComponent = ComponentsEnum.IRIT;
 
     private MarkovNodeExecutor executor;
-    private GEBuyNode buy;
-    private GESellNode sell;
+    private GESpinLockBuyNode buy;
+    private GESpinLockSellNode sell;
 
     private DebuggingNode debug;
     private boolean runDebugNode = false;
@@ -78,8 +78,8 @@ public class MainScript extends Script {
         HoverBankerCreation hover = new HoverBankerCreation(this, debugComponent);
         PrematureStopCreation premature = new PrematureStopCreation(this, debugComponent);
 
-        buy = new GEBuyNode(this, debugComponent);
-        sell = new GESellNode(this, debugComponent);
+        buy = new GESpinLockBuyNode(this, debugComponent);
+        sell = new GESpinLockSellNode(this, debugComponent);
 
         executor = new MarkovNodeExecutor(deposit, w10P, w14P, wXP, w10S, w14S, wXS, restock, deposit, fix, afk, hover, premature, buy, sell);
     }

@@ -6,7 +6,7 @@ import Nodes.BankingNodes.HerbWithdraw.WithdrawXPrimary;
 import Nodes.BankingNodes.VialWithdraw.Withdraw10Secondary;
 import Nodes.BankingNodes.VialWithdraw.Withdraw14Secondary;
 import Nodes.BankingNodes.VialWithdraw.WithdrawXSecondary;
-import Nodes.GENodes.GESellNode;
+import Nodes.GENodes.GESpinLockSellNode;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
 import Util.ComponentsEnum;
@@ -72,7 +72,7 @@ public class DecideRestockNode implements ExecutableNode {
 
     @Override
     public Class<? extends ExecutableNode> setJumpTarget() {
-        return GESellNode.class;
+        return GESpinLockSellNode.class;
     }
 
     @Override

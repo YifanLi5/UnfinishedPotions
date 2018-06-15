@@ -25,7 +25,7 @@ public class WithdrawXPrimary extends AbstractWithdrawPrimary {
                 }
             }.sleep();
             if(isOpen){
-                Statics.longRandomNormalDelay();
+                Statics.shortRandomNormalDelay();
                 return bank.withdraw(components.getPrimaryItemName(), 14);
             }
         }

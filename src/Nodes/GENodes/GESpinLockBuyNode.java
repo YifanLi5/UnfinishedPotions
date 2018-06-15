@@ -23,7 +23,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 
-public class GEBuyNode implements ExecutableNode, GrandExchangeObserver {
+public class GESpinLockBuyNode implements ExecutableNode, GrandExchangeObserver {
 
     private final Script script;
     private GrandExchangeOperations operations;
@@ -36,9 +36,11 @@ public class GEBuyNode implements ExecutableNode, GrandExchangeObserver {
 
     private boolean offerUpdated;
 
+    private static int[] finishedPotionMargin = {0, 0};
+
     private List<Edge> adjNodes = Arrays.asList(new Edge(DepositNode.class, 1));
 
-    public GEBuyNode(Script script, ComponentsEnum buy){
+    public GESpinLockBuyNode(Script script, ComponentsEnum buy){
         operations = new GrandExchangeOperations();
         polling = GrandExchangePolling.getInstance(script);
         operations.exchangeContext(script.bot);
@@ -92,7 +94,7 @@ public class GEBuyNode implements ExecutableNode, GrandExchangeObserver {
                 polling.registerObserver(this);
                 if(selectBuyOperation(margin)){
                     int loops = 0;
-                    while(!offerUpdated && amtTraded > 14){
+                    while(!offerUpdated && amtTraded < 14){
                         loops++;
                         Thread.sleep(1000);
                         script.log("Thread: " + Thread.currentThread().getId() + " is spinlocking in GEBuy");
@@ -119,10 +121,15 @@ public class GEBuyNode implements ExecutableNode, GrandExchangeObserver {
         script.log("increasing offer to " + (prevOffer + 25));
         if(operations.abortOffersWithItem(buy.getPrimaryItemName())){
             if(collect()){
-                return operations.buyItem(buy.getPrimaryItemID(), buy.getGeSearchTerm(), prevOffer + 25, 1000);
+                GESpinLockSellNode.setPrimaryComponentBuyPrice(prevOffer + 25);
+                return operations.buyItem(buy.getPrimaryItemID(), buy.getGeSearchTerm(), prevOffer + 25, 100);
             }
         }
         return false;
+    }
+
+    public static void setFinishedPotionMargin(int[] finishedPotionMargin) {
+        GESpinLockBuyNode.finishedPotionMargin = finishedPotionMargin;
     }
 
     private boolean collect() throws InterruptedException {
@@ -158,9 +165,11 @@ public class GEBuyNode implements ExecutableNode, GrandExchangeObserver {
     }
 
     private boolean selectBuyOperation(int[] margin) throws InterruptedException {
-        if(margin[1] - margin[0] <= 75){
+        if(margin[1] - margin[0] <= 100 || finishedPotionMargin[0] - margin[1] >= 175){
+            GESpinLockSellNode.setPrimaryComponentBuyPrice(margin[1]);
             return operations.buyItem(buy.getPrimaryItemID(), buy.getGeSearchTerm(), margin[1], 1000);
         } else {
+            GESpinLockSellNode.setPrimaryComponentBuyPrice((margin[1] + margin[0])/2);
             return operations.buyItem(buy.getPrimaryItemID(), buy.getGeSearchTerm(), margin, 1000);
         }
     }

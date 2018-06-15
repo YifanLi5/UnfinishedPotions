@@ -5,6 +5,8 @@ public enum ComponentsEnum {
     AVANTOE("Avantoe", "Vial of water", "Avantoe potion (unf)", "avan", 261, 227, 103),
     TOADFLAX("Toadflax", "Vial of water", "Toadflax potion (unf)", "toadfl", 2998, 227, 3002),
     RANARR("Ranarr", "Vial of water", "Ranarr potion (unf)", "ranar", 257, 227, 99),
+    IRIT("Irit leaf", "Vial of water", "Irit potion (unf)", "irit", 259, 227, 101),
+    KWUARM("Kwuarm", "Vial of water", "Kwuarm potion (unf)", "Kwu", 263, 227, 105),
     CLAY("Clay", "Jug of water", "Soft clay", "clay", 434, 1937, 1761);
 
     private String primaryItemName, secondaryItemName, finishedItemName, geSearchTerm;
