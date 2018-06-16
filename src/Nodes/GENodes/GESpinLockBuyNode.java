@@ -41,9 +41,8 @@ public class GESpinLockBuyNode implements ExecutableNode, GrandExchangeObserver 
     private List<Edge> adjNodes = Arrays.asList(new Edge(DepositNode.class, 1));
 
     public GESpinLockBuyNode(Script script, ComponentsEnum buy){
-        operations = new GrandExchangeOperations();
+        this.operations = GrandExchangeOperations.getInstance(script.bot);
         polling = GrandExchangePolling.getInstance(script);
-        operations.exchangeContext(script.bot);
         this.script = script;
         this.buy = buy;
     }
@@ -136,7 +135,7 @@ public class GESpinLockBuyNode implements ExecutableNode, GrandExchangeObserver 
         boolean successfulCollect = false;
         int attempts = 0;
         while(!successfulCollect && attempts < 5){
-            successfulCollect = operations.collectAll();
+            successfulCollect = operations.collect();
             attempts++;
             MethodProvider.sleep(1000);
         }
@@ -167,10 +166,11 @@ public class GESpinLockBuyNode implements ExecutableNode, GrandExchangeObserver 
     private boolean selectBuyOperation(int[] margin) throws InterruptedException {
         if(margin[1] - margin[0] <= 100 || finishedPotionMargin[0] - margin[1] >= 175){
             GESpinLockSellNode.setPrimaryComponentBuyPrice(margin[1]);
-            return operations.buyItem(buy.getPrimaryItemID(), buy.getGeSearchTerm(), margin[1], 1000);
+            return operations.buyUpToLimit(buy.getPrimaryItemID(), buy.getGeSearchTerm(), margin[1], 1000);
         } else {
-            GESpinLockSellNode.setPrimaryComponentBuyPrice((margin[1] + margin[0])/2);
-            return operations.buyItem(buy.getPrimaryItemID(), buy.getGeSearchTerm(), margin, 1000);
+            int price = (margin[1] + margin[0])/2;
+            GESpinLockSellNode.setPrimaryComponentBuyPrice(price);
+            return operations.buyUpToLimit(buy.getPrimaryItemID(), buy.getGeSearchTerm(), price, 1000);
         }
     }
 

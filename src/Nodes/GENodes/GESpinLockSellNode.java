@@ -36,9 +36,8 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
     public GESpinLockSellNode(Script script, ComponentsEnum sell) {
         this.script = script;
         this.sell = sell;
-        this.operations = new GrandExchangeOperations();
+        this.operations = GrandExchangeOperations.getInstance(script.bot);
         this.polling = GrandExchangePolling.getInstance(script);
-        operations.exchangeContext(script.bot);
     }
 
     @Override
@@ -74,37 +73,39 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
         }
         Inventory inv = script.getInventory();
         if(inv.contains(sell.getFinishedItemName()) || withdrawSellItem(sell.getFinishedItemID())) {
-            if(isSellItemPending()){
-                script.log("canceling previous sell offer");
-                if(operations.abortOffersWithItem(sell.getFinishedItemName())){
-                    collect();
-                }
-            }
-            MethodProvider.sleep(1000);
-            if(inv.getAmount(995) < 5000){
-                script.log("withdrawing cash");
-                withdrawCash();
-            }
-            int[] margin = {-1,-1};
-            if(inv.getAmount(995) >= 5000){
-                margin = operations.priceCheckItem(sell.getFinishedItemID(), sell.getGeSearchTerm());
-                GESpinLockBuyNode.setFinishedPotionMargin(margin);
-            }
-            offerUpdated = false;
-            polling.registerObserver(this);
-            if(selectSellOperation(margin)) {
-                int loops = 0;
-                while(!offerUpdated && amtTraded < 14){
-                    loops++;
-                    Thread.sleep(1000);
-                    script.log("Thread: " + Thread.currentThread().getId() + " is spinlocking in GESell");
-                    if(loops > 90){
-                        loops = 0;
-                        decreaseOffer();
+            if(inv.getAmount(sell.getFinishedItemName()) >= 50){
+                if(isSellItemPending()){
+                    script.log("canceling previous sell offer");
+                    if(operations.abortOffersWithItem(sell.getFinishedItemName())){
+                        collect();
                     }
                 }
-                script.log("Thread: " + Thread.currentThread().getId() + " GESell spinlock released");
-                collect();
+                MethodProvider.sleep(1000);
+                if(inv.getAmount(995) < 5000){
+                    script.log("withdrawing cash");
+                    withdrawCash();
+                }
+                int[] margin = {-1,-1};
+                if(inv.getAmount(995) >= 5000){
+                    margin = operations.priceCheckItem(sell.getFinishedItemID(), sell.getGeSearchTerm());
+                    GESpinLockBuyNode.setFinishedPotionMargin(margin);
+                }
+                offerUpdated = false;
+                polling.registerObserver(this);
+                if(selectSellOperation(margin)) {
+                    int loops = 0;
+                    while(!offerUpdated && amtTraded < 14){
+                        loops++;
+                        Thread.sleep(1000);
+                        script.log("Thread: " + Thread.currentThread().getId() + " is spinlocking in GESell");
+                        if(loops > 90){
+                            loops = 0;
+                            decreaseOffer();
+                        }
+                    }
+                    script.log("Thread: " + Thread.currentThread().getId() + " GESell spinlock released");
+                    collect();
+                }
             }
         }
         return 1000;
@@ -126,7 +127,7 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
             MethodProvider.sleep(1000);
             if(collect()){
                 MethodProvider.sleep(1000);
-                return operations.sellItem(sell.getFinishedItemID(), prevOffer - 25);
+                return operations.sellAll(sell.getFinishedItemID(), prevOffer - 25);
             }
         }
         return false;
@@ -154,7 +155,7 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
         boolean successfulCollect = false;
         int attempts = 0;
         while(!successfulCollect && attempts < 5){
-            successfulCollect = operations.collectAll();
+            successfulCollect = operations.collect();
             attempts++;
             MethodProvider.sleep(1000);
         }
@@ -195,9 +196,10 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
 
     private boolean selectSellOperation(int[] margin) throws InterruptedException {
         if(margin[1] - margin[0] <= 75 || margin[0] - primaryComponentBuyPrice >= 175){
-            return operations.sellItem(sell.getFinishedItemID()+1, margin[0]);
+            return operations.sellAll(sell.getFinishedItemID()+1, margin[0]);
         } else {
-            return operations.sellItem(sell.getFinishedItemID()+1, margin);
+            int price = (margin[1] + margin[0])/2;
+            return operations.sellAll(sell.getFinishedItemID()+1, price);
         }
     }
 
