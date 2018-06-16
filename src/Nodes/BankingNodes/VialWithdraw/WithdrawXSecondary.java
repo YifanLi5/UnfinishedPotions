@@ -1,6 +1,5 @@
 package Nodes.BankingNodes.VialWithdraw;
 
-import Util.ComponentsEnum;
 import Util.Statics;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.ui.RS2Widget;
@@ -8,16 +7,16 @@ import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 public class WithdrawXSecondary extends AbstractWithdrawSecondary {
-    public WithdrawXSecondary(Script script, ComponentsEnum components) {
-        super(script, components);
+    public WithdrawXSecondary(Script script) {
+        super(script);
     }
 
     @Override
     boolean withdrawSecondary() throws InterruptedException {
         Bank bank = script.getBank();
-        if(!script.getInventory().isEmptyExcept(components.getPrimaryItemName()))
-            script.getBank().depositAllExcept(components.getPrimaryItemName());
-        if(bank.interact("Withdraw-X", components.getSecondaryItemName())){
+        if(!script.getInventory().isEmptyExcept(recipe.getPrimaryItemName()))
+            script.getBank().depositAllExcept(recipe.getPrimaryItemName());
+        if(bank.interact("Withdraw-X", recipe.getSecondaryItemName())){
             boolean isOpen = new ConditionalSleep(1000){
                 @Override
                 public boolean condition() throws InterruptedException {
@@ -26,7 +25,7 @@ public class WithdrawXSecondary extends AbstractWithdrawSecondary {
             }.sleep();
             if(isOpen){
                 Statics.shortRandomNormalDelay();
-                return bank.withdraw(components.getSecondaryItemName(), 14);
+                return bank.withdraw(recipe.getSecondaryItemName(), 14);
             }
 
         }

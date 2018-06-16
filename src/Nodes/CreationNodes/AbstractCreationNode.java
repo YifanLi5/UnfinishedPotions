@@ -3,9 +3,10 @@ package Nodes.CreationNodes;
 import Nodes.BankingNodes.DepositNode;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
-import Util.ComponentsEnum;
+import Util.ConversionMargins;
 import Util.Statics;
 import Util.SupplierWithCE;
+import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.api.model.Item;
 import org.osbot.rs07.api.ui.RS2Widget;
@@ -23,7 +24,7 @@ import static java.awt.event.KeyEvent.VK_SPACE;
 public abstract class AbstractCreationNode implements ExecutableNode {
 
     private static final String USE = "Use";
-    ComponentsEnum components;
+    UnfPotionRecipes recipe;
     int secondaryCount;
     int primaryCount;
 
@@ -31,9 +32,9 @@ public abstract class AbstractCreationNode implements ExecutableNode {
 
     private List<Edge> adjNodes = Arrays.asList(new Edge(DepositNode.class, 1));
 
-    AbstractCreationNode(Script script, ComponentsEnum components){
+    AbstractCreationNode(Script script){
         this.script = script;
-        this.components = components;
+        this.recipe = ConversionMargins.getInstance(script).getCurrentRecipe();
     }
 
     @Override
@@ -41,7 +42,7 @@ public abstract class AbstractCreationNode implements ExecutableNode {
         return new ConditionalSleep(1000){
             @Override
             public boolean condition() throws InterruptedException {
-                return script.getInventory().contains(components.getPrimaryItemName()) && script.getInventory().contains(components.getSecondaryItemName());
+                return script.getInventory().contains(recipe.getPrimaryItemName()) && script.getInventory().contains(recipe.getSecondaryItemName());
             }
         }.sleep();
     }
@@ -52,8 +53,8 @@ public abstract class AbstractCreationNode implements ExecutableNode {
         if(script.getWidgets().closeOpenInterface()){
             if(executeStep(this::combineComponents)){
                 if(this instanceof PrematureStopCreation){
-                    secondaryCount = (int) script.getInventory().getAmount(components.getSecondaryItemName());
-                    primaryCount = (int) script.getInventory().getAmount(components.getPrimaryItemName());
+                    secondaryCount = (int) script.getInventory().getAmount(recipe.getSecondaryItemName());
+                    primaryCount = (int) script.getInventory().getAmount(recipe.getPrimaryItemName());
                 }
                 if(executeStep(this::interactMakePotsWidget)){
                     return waitForPotions();
@@ -102,18 +103,18 @@ public abstract class AbstractCreationNode implements ExecutableNode {
     private boolean combineComponents() throws InterruptedException {
         Inventory inv = script.getInventory();
 
-        if(inv.contains(components.getPrimaryItemName()) && inv.contains(components.getSecondaryItemName())){
+        if(inv.contains(recipe.getPrimaryItemName()) && inv.contains(recipe.getSecondaryItemName())){
             Item[] items = inv.getItems();
             int slot1 = (int) Statics.randomNormalDist(14,2);
             int slot2;
-            if(items[slot1].getName().equals(components.getPrimaryItemName())){
-                slot2 = searchForOtherItemInvSlot(components.getSecondaryItemID(), slot1, items);
+            if(items[slot1].getName().equals(recipe.getPrimaryItemName())){
+                slot2 = searchForOtherItemInvSlot(recipe.getSecondaryItemID(), slot1, items);
             }
-            else if(items[slot1].getName().equals(components.getSecondaryItemName())){
-                slot2 = searchForOtherItemInvSlot(components.getPrimaryItemID(), slot1, items);
+            else if(items[slot1].getName().equals(recipe.getSecondaryItemName())){
+                slot2 = searchForOtherItemInvSlot(recipe.getPrimaryItemID(), slot1, items);
             }
             else{
-                script.log("detected foreign components");
+                script.log("detected foreign recipe");
                 return false;
             }
 
@@ -128,8 +129,8 @@ public abstract class AbstractCreationNode implements ExecutableNode {
 
             //failsafe, if the above doesnt work
             if(inv.deselectItem()){
-                if(inv.interact("Use", components.getSecondaryItemName())){
-                    return inv.interact("Use", components.getPrimaryItemID());
+                if(inv.interact("Use", recipe.getSecondaryItemName())){
+                    return inv.interact("Use", recipe.getPrimaryItemID());
                 }
             }
         }
@@ -140,8 +141,8 @@ public abstract class AbstractCreationNode implements ExecutableNode {
         if(slot1 >= 0 && slot1 <= 28 && slot2 >= 0 && slot2 <= 28){
             int slot1ItemID = items[slot1].getId();
             int slot2ItemID = items[slot2].getId();
-            return (slot1ItemID == components.getSecondaryItemID() && slot2ItemID == components.getPrimaryItemID())
-                    || (slot1ItemID == components.getPrimaryItemID() && slot2ItemID == components.getSecondaryItemID());
+            return (slot1ItemID == recipe.getSecondaryItemID() && slot2ItemID == recipe.getPrimaryItemID())
+                    || (slot1ItemID == recipe.getPrimaryItemID() && slot2ItemID == recipe.getSecondaryItemID());
         }
         return false;
     }

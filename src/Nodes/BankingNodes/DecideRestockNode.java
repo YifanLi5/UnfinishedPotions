@@ -9,8 +9,9 @@ import Nodes.BankingNodes.VialWithdraw.WithdrawXSecondary;
 import Nodes.GENodes.GESpinLockSellNode;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
-import Util.ComponentsEnum;
+import Util.ConversionMargins;
 import Util.Statics;
+import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.script.Script;
 
@@ -19,14 +20,14 @@ import java.util.List;
 
 public class DecideRestockNode implements ExecutableNode {
     private Script script;
-    private ComponentsEnum item;
+    private UnfPotionRecipes recipe;
     private boolean goToGE = false;
 
     private List<Edge> adjNodes;
 
-    public DecideRestockNode(Script script, ComponentsEnum item) {
+    public DecideRestockNode(Script script) {
         this.script = script;
-        this.item = item;
+        this.recipe = ConversionMargins.getInstance(script).getCurrentRecipe();
 
         adjNodes = Arrays.asList(
                 new Edge(Withdraw10Primary.class, 5),
@@ -49,7 +50,7 @@ public class DecideRestockNode implements ExecutableNode {
             logNode();
         }
         Bank bank = script.getBank();
-        int primaryRemaining = (int) bank.getAmount(item.getPrimaryItemName());
+        int primaryRemaining = (int) bank.getAmount(recipe.getPrimaryItemName());
         if(primaryRemaining < 14)
             goToGE = true;
 

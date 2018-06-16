@@ -1,6 +1,6 @@
 package Util;
 
-public enum ComponentsEnum {
+public enum UnfPotionRecipes {
 
     AVANTOE("Avantoe", "Vial of water", "Avantoe potion (unf)", "avan", 261, 227, 103),
     TOADFLAX("Toadflax", "Vial of water", "Toadflax potion (unf)", "toadfl", 2998, 227, 3002),
@@ -12,7 +12,7 @@ public enum ComponentsEnum {
     private String primaryItemName, secondaryItemName, finishedItemName, geSearchTerm;
     private int primaryItemID, secondaryItemID, finishedItemID;
 
-    ComponentsEnum(String primaryItemName, String secondaryItemName, String finishedItemName, String geSearchTerm, int primaryItemID, int secondaryItemID, int finishedItemID) {
+    UnfPotionRecipes(String primaryItemName, String secondaryItemName, String finishedItemName, String geSearchTerm, int primaryItemID, int secondaryItemID, int finishedItemID) {
         this.primaryItemName = primaryItemName;
         this.secondaryItemName = secondaryItemName;
         this.finishedItemName = finishedItemName;

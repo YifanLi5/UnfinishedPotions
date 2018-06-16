@@ -1,14 +1,13 @@
 package Nodes.CreationNodes;
 
-import Util.ComponentsEnum;
 import Util.Statics;
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 public class PrematureStopCreation extends HoverBankerCreation {
-    public PrematureStopCreation(Script script, ComponentsEnum components) {
-        super(script, components);
+    public PrematureStopCreation(Script script) {
+        super(script);
     }
 
     @Override
@@ -19,7 +18,7 @@ public class PrematureStopCreation extends HoverBankerCreation {
         new ConditionalSleep(25000) {
             @Override
             public boolean condition() {
-                return inv.getAmount(components.getFinishedItemName()) >= maxCreatable-1;
+                return inv.getAmount(recipe.getFinishedItemName()) >= maxCreatable-1;
             }
         }.sleep();
 

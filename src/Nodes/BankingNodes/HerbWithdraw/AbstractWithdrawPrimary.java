@@ -9,8 +9,9 @@ import Nodes.CreationNodes.HoverBankerCreation;
 import Nodes.CreationNodes.PrematureStopCreation;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
-import Util.ComponentsEnum;
+import Util.ConversionMargins;
 import Util.Statics;
+import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.script.Script;
 
@@ -19,7 +20,7 @@ import java.util.List;
 
 public abstract class AbstractWithdrawPrimary implements ExecutableNode{
     Script script;
-    ComponentsEnum components;
+    UnfPotionRecipes recipe;
 
     private List<Edge> preSecondaryEdges = Arrays.asList(
             new Edge(Withdraw10Secondary.class, 5),
@@ -27,19 +28,19 @@ public abstract class AbstractWithdrawPrimary implements ExecutableNode{
             new Edge(WithdrawXSecondary.class, 10));
 
     private List<Edge> postSecondaryEdges = Arrays.asList(
-            new Edge(OptionalInvFixNode.class, 100),
+            new Edge(OptionalInvFixNode.class, 140),
             new Edge(AFKCreation.class, 50),
             new Edge(HoverBankerCreation.class, 35),
             new Edge(PrematureStopCreation.class, 30));
 
-    AbstractWithdrawPrimary(Script script, ComponentsEnum component){
+    AbstractWithdrawPrimary(Script script){
         this.script = script;
-        this.components = component;
+        this.recipe = ConversionMargins.getInstance(script).getCurrentRecipe();
     }
 
     @Override
     public boolean canExecute() throws InterruptedException {
-        return !script.getInventory().contains(components.getPrimaryItemName())
+        return !script.getInventory().contains(recipe.getPrimaryItemName())
                 || script.getInventory().isEmpty();
     }
 
@@ -49,7 +50,7 @@ public abstract class AbstractWithdrawPrimary implements ExecutableNode{
             logNode();
         }
         Bank bank = script.getBank();
-        if(bank.isOpen()){
+        if(bank.open()){
             if(bank.enableMode(Bank.BankMode.WITHDRAW_ITEM)){
                 if(withdrawPrimary())
                     return (int) Statics.randomNormalDist(500, 100);
@@ -68,7 +69,7 @@ public abstract class AbstractWithdrawPrimary implements ExecutableNode{
 
     @Override
     public List<Edge> getAdjacentNodes() {
-        boolean hasSecondary = script.getInventory().contains(components.getSecondaryItemName());
+        boolean hasSecondary = script.getInventory().contains(recipe.getSecondaryItemName());
         return hasSecondary ? postSecondaryEdges : preSecondaryEdges;
     }
 
@@ -81,6 +82,5 @@ public abstract class AbstractWithdrawPrimary implements ExecutableNode{
     public Class<? extends ExecutableNode> setJumpTarget() {
         return null;
     }
-
 
 }

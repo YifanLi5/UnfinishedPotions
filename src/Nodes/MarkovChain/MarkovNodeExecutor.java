@@ -14,6 +14,7 @@ public class MarkovNodeExecutor {
     public MarkovNodeExecutor(ExecutableNode startingNode, ExecutableNode... nodes){
         current = startingNode;
         classTypeMap = new HashMap<>(16);
+        classTypeMap.put(startingNode.getClass(), startingNode);
         for(ExecutableNode n: nodes){
             classTypeMap.put(n.getClass(), n);
         }

@@ -16,8 +16,9 @@ import Nodes.DebuggingNode;
 import Nodes.GENodes.GESpinLockBuyNode;
 import Nodes.GENodes.GESpinLockSellNode;
 import Nodes.MarkovChain.MarkovNodeExecutor;
-import Util.ComponentsEnum;
+import Nodes.StartingNode;
 import Util.Statics;
+import Util.UnfPotionRecipes;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.script.ScriptManifest;
 
@@ -29,15 +30,15 @@ import static ScriptClasses.MainScript.SCRIPT_NAME;
 @ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
 public class MainScript extends Script {
     static final String SCRIPT_NAME = "convMargins";
-    static final int BUILD_NUM = 1;
-    private ComponentsEnum debugComponent = ComponentsEnum.IRIT;
+    static final int BUILD_NUM = 3;
+    private UnfPotionRecipes debugComponent = UnfPotionRecipes.IRIT;
 
     private MarkovNodeExecutor executor;
     private GESpinLockBuyNode buy;
     private GESpinLockSellNode sell;
 
     private DebuggingNode debug;
-    private boolean runDebugNode = true;
+    private boolean runDebugNode = false;
 
     @Override
     public void onStart() throws InterruptedException {
@@ -62,26 +63,27 @@ public class MainScript extends Script {
     }
 
     private void markovChainSetup(){
-        Withdraw10Primary w10P = new Withdraw10Primary(this, debugComponent);
-        Withdraw14Primary w14P = new Withdraw14Primary(this, debugComponent);
-        WithdrawXPrimary wXP = new WithdrawXPrimary(this, debugComponent);
+        StartingNode start = new StartingNode(this);
+        Withdraw10Primary w10P = new Withdraw10Primary(this);
+        Withdraw14Primary w14P = new Withdraw14Primary(this);
+        WithdrawXPrimary wXP = new WithdrawXPrimary(this);
 
-        Withdraw10Secondary w10S = new Withdraw10Secondary(this, debugComponent);
-        Withdraw14Secondary w14S = new Withdraw14Secondary(this, debugComponent);
-        WithdrawXSecondary wXS = new WithdrawXSecondary(this, debugComponent);
+        Withdraw10Secondary w10S = new Withdraw10Secondary(this);
+        Withdraw14Secondary w14S = new Withdraw14Secondary(this);
+        WithdrawXSecondary wXS = new WithdrawXSecondary(this);
 
-        DecideRestockNode restock = new DecideRestockNode(this, debugComponent);
+        DecideRestockNode restock = new DecideRestockNode(this);
         DepositNode deposit = new DepositNode(this);
-        OptionalInvFixNode fix = new OptionalInvFixNode(this, debugComponent);
+        OptionalInvFixNode fix = new OptionalInvFixNode(this);
 
-        AFKCreation afk = new AFKCreation(this, debugComponent);
-        HoverBankerCreation hover = new HoverBankerCreation(this, debugComponent);
-        PrematureStopCreation premature = new PrematureStopCreation(this, debugComponent);
+        AFKCreation afk = new AFKCreation(this);
+        HoverBankerCreation hover = new HoverBankerCreation(this);
+        PrematureStopCreation premature = new PrematureStopCreation(this);
 
-        buy = new GESpinLockBuyNode(this, debugComponent);
-        sell = new GESpinLockSellNode(this, debugComponent);
+        buy = new GESpinLockBuyNode(this);
+        sell = new GESpinLockSellNode(this);
 
-        executor = new MarkovNodeExecutor(deposit, w10P, w14P, wXP, w10S, w14S, wXS, restock, deposit, fix, afk, hover, premature, buy, sell);
+        executor = new MarkovNodeExecutor(start, w10P, w14P, wXP, w10S, w14S, wXS, restock, deposit, fix, afk, hover, premature, buy, sell);
     }
 
     @Override

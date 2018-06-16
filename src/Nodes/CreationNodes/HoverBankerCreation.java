@@ -1,6 +1,5 @@
 package Nodes.CreationNodes;
 
-import Util.ComponentsEnum;
 import Util.Statics;
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.api.Menu;
@@ -15,8 +14,8 @@ import org.osbot.rs07.utility.ConditionalSleep;
 import java.util.List;
 
 public class HoverBankerCreation extends AbstractCreationNode {
-    public HoverBankerCreation(Script script, ComponentsEnum components) {
-        super(script, components);
+    public HoverBankerCreation(Script script) {
+        super(script);
     }
 
     @Override
@@ -27,7 +26,7 @@ public class HoverBankerCreation extends AbstractCreationNode {
         new ConditionalSleep(25000) {
             @Override
             public boolean condition() throws InterruptedException {
-                return !inv.contains(components.getPrimaryItemName()) || !inv.contains(components.getSecondaryItemName());
+                return !inv.contains(recipe.getPrimaryItemName()) || !inv.contains(recipe.getSecondaryItemName());
             }
         }.sleep();
 

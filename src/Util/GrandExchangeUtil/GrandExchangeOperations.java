@@ -69,7 +69,7 @@ public class GrandExchangeOperations extends GrandExchange{
                 }
             }
         }
-        return new int[]{-1, -1};
+        return new int[]{0,0};
     }
 
     public boolean sellAll(int itemID, int price) throws InterruptedException {
