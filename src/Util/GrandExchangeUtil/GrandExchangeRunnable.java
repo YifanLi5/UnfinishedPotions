@@ -46,8 +46,8 @@ public class GrandExchangeRunnable implements Runnable {
                             for(Iterator<GrandExchangeObserver> iter = observers.iterator(); iter.hasNext();){
                                 GrandExchangeObserver obs = iter.next();
                                 obs.onGEUpdate(box);
-                                if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY || ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE)
-                                    iter.remove();
+                                /*if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY || ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE)
+                                    iter.remove();*/
                             }
                         }
                     }

@@ -18,7 +18,6 @@ import Nodes.GENodes.GESpinLockSellNode;
 import Nodes.MarkovChain.MarkovNodeExecutor;
 import Nodes.StartingNode;
 import Util.Statics;
-import Util.UnfPotionRecipes;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.script.ScriptManifest;
 
@@ -30,9 +29,7 @@ import static ScriptClasses.MainScript.SCRIPT_NAME;
 @ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
 public class MainScript extends Script {
     static final String SCRIPT_NAME = "convMargins";
-    static final int BUILD_NUM = 3;
-    private UnfPotionRecipes debugComponent = UnfPotionRecipes.IRIT;
-
+    static final int BUILD_NUM = 11;
     private MarkovNodeExecutor executor;
     private GESpinLockBuyNode buy;
     private GESpinLockSellNode sell;

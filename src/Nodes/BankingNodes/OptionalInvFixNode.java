@@ -31,6 +31,7 @@ public class OptionalInvFixNode implements ExecutableNode{
 
     @Override
     public boolean canExecute() throws InterruptedException {
+        this.recipe = ConversionMargins.getInstance(script).getCurrentRecipe();
         if(Statics.logNodes){
             logNode();
         }

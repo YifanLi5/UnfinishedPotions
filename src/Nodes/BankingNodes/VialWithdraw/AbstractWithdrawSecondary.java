@@ -41,6 +41,7 @@ public abstract class AbstractWithdrawSecondary implements ExecutableNode{
 
     @Override
     public boolean canExecute() throws InterruptedException {
+        this.recipe = ConversionMargins.getInstance(script).getCurrentRecipe();
         return !script.getInventory().contains(recipe.getSecondaryItemName());
     }
 

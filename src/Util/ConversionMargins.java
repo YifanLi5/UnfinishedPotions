@@ -13,7 +13,9 @@ public class ConversionMargins {
     private HashMap<UnfPotionRecipes, int[]> marginsDB;
     private HashMap<UnfPotionRecipes, Instant> lastUpdateTimestamps;
     private GrandExchangeOperations operations;
-    private UnfPotionRecipes currentRecipe = UnfPotionRecipes.IRIT;
+    private UnfPotionRecipes currentRecipe;
+
+    public static final int SWITCH_RECIPE_IF_LOWER = 150;
 
     private ConversionMargins(Script script){
         this.script = script;
@@ -37,21 +39,21 @@ public class ConversionMargins {
         return singleton;
     }
 
-    public int[] priceCheckSpecific(UnfPotionRecipes unfPotionRecipes) throws InterruptedException {
-        int[] primaryMargin = operations.priceCheckItem(unfPotionRecipes.getPrimaryItemID(), unfPotionRecipes.getGeSearchTerm());
-        int[] finishedMargin = operations.priceCheckItem(unfPotionRecipes.getFinishedItemID(), unfPotionRecipes.getGeSearchTerm());
+    public int[] priceCheckSpecificConversion(UnfPotionRecipes unfPotionRecipes) throws InterruptedException {
+        int[] primaryMargin = operations.priceCheckItemMargin(unfPotionRecipes.getPrimaryItemID(), unfPotionRecipes.getGeSearchTerm());
+        int[] finishedMargin = operations.priceCheckItemMargin(unfPotionRecipes.getFinishedItemID(), unfPotionRecipes.getGeSearchTerm());
         int[] margin = {primaryMargin[1], finishedMargin[0]};
-        script.log(unfPotionRecipes.name() + " unf potion conversion has margin: " + Arrays.toString(margin));
+        script.log(unfPotionRecipes.name() + " unf potion conversion has margin: " + Arrays.toString(margin) + " delta: " + (margin[1] - margin[0]));
         return margin;
     }
 
     public UnfPotionRecipes priceCheckAll() throws InterruptedException {
         int bestDeltaMargin = 0;
-        UnfPotionRecipes best = UnfPotionRecipes.CLAY;
+        UnfPotionRecipes best = null;
         for(UnfPotionRecipes conv : marginsDB.keySet()){
             script.log("finding conversion margin for: " + conv.name());
-            int[] primaryMargin = operations.priceCheckItem(conv.getPrimaryItemID(), conv.getGeSearchTerm());
-            int[] finishedMargin = operations.priceCheckItem(conv.getFinishedItemID(), conv.getGeSearchTerm());
+            int[] primaryMargin = operations.priceCheckItemMargin(conv.getPrimaryItemID(), conv.getGeSearchTerm());
+            int[] finishedMargin = operations.priceCheckItemMargin(conv.getFinishedItemID(), conv.getGeSearchTerm());
             int[] convMargin = {primaryMargin[1], finishedMargin[0]};
             marginsDB.replace(conv, convMargin);
             script.log(conv.name() + " unf potion conversion has margin: " + Arrays.toString(convMargin) + " delta: " + (convMargin[1] - convMargin[0]));
@@ -62,20 +64,38 @@ public class ConversionMargins {
             }
             lastUpdateTimestamps.put(conv, Instant.now());
         }
-        if(best != UnfPotionRecipes.CLAY){
+        if(best != null){
             script.log(best.name() + " has best delta margin at: " + bestDeltaMargin + " with margin: " + Arrays.toString(marginsDB.get(best)));
         } else {
-            script.log("price check all operation failed");
+            script.log("price check all operation failed, setting recipe to default(IRIT)");
             return UnfPotionRecipes.IRIT;
         }
         return best;
     }
 
+    public void updateConvMarginEntry(UnfPotionRecipes recipe, int[] newMargin){
+        marginsDB.put(recipe, newMargin);
+        lastUpdateTimestamps.put(recipe, Instant.now());
+    }
+
+    public void updatePrimaryIngredientBuyPrice(UnfPotionRecipes recipe, int newPrice){
+        int[] oldMargin = marginsDB.get(recipe);
+        marginsDB.put(recipe, new int[]{newPrice, oldMargin[1]});
+    }
+
+    public void updateFinishedProductSellPrice(UnfPotionRecipes recipe, int newPrice){
+        int[] oldMargin = marginsDB.get(recipe);
+        marginsDB.put(recipe, new int[]{oldMargin[0], newPrice});
+    }
+
     public int getSecondsSinceLastUpdate(UnfPotionRecipes unfPotionRecipes) {
         Instant lastUpdate = lastUpdateTimestamps.get(unfPotionRecipes);
         if(lastUpdate != null){
-            return (int) (Instant.now().getEpochSecond() - lastUpdate.getEpochSecond());
+            int secondsAgo = (int) (Instant.now().getEpochSecond() - lastUpdate.getEpochSecond());
+            script.log("last update was: " + secondsAgo + " ago");
+            return secondsAgo;
         }
+        script.log("no last update returning INT_MAX");
         return Integer.MAX_VALUE;
     }
 

@@ -40,6 +40,7 @@ public abstract class AbstractWithdrawPrimary implements ExecutableNode{
 
     @Override
     public boolean canExecute() throws InterruptedException {
+        this.recipe = ConversionMargins.getInstance(script).getCurrentRecipe();
         return !script.getInventory().contains(recipe.getPrimaryItemName())
                 || script.getInventory().isEmpty();
     }

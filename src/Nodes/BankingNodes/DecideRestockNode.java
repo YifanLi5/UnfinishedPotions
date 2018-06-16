@@ -41,6 +41,7 @@ public class DecideRestockNode implements ExecutableNode {
 
     @Override
     public boolean canExecute() {
+        this.recipe = ConversionMargins.getInstance(script).getCurrentRecipe();
         return script.getBank().isOpen();
     }
 

@@ -69,6 +69,7 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
 
     @Override
     public int executeNode() throws InterruptedException {
+        recipe = conversionMargins.getCurrentRecipe();
         if(Statics.logNodes){
             logNode();
         }
@@ -90,10 +91,11 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
                 if(inv.getAmount(995) >= 5000){
                     if(conversionMargins.getSecondsSinceLastUpdate(recipe) > 900){
                         isConvMargin = true;
-                        margin = conversionMargins.priceCheckSpecific(recipe);
+                        margin = conversionMargins.priceCheckSpecificConversion(recipe);
                     } else {
                         isConvMargin = false;
-                        margin = operations.priceCheckItem(recipe.getFinishedItemID(), recipe.getGeSearchTerm());
+                        margin = operations.priceCheckItemMargin(recipe.getFinishedItemID(), recipe.getGeSearchTerm());
+                        conversionMargins.updateFinishedProductSellPrice(recipe, margin[0]);
                     }
                 }
                 offerUpdated = false;

@@ -25,7 +25,7 @@ public class GrandExchangeOperations extends GrandExchange{
         return singleton;
     }
 
-    public int[] priceCheckItem(int itemID, String searchTerm) throws InterruptedException {
+    public int[] priceCheckItemMargin(int itemID, String searchTerm) throws InterruptedException {
         if(!inventory.contains(995)){
             withdrawCash();
         }

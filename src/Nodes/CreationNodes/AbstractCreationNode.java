@@ -39,6 +39,7 @@ public abstract class AbstractCreationNode implements ExecutableNode {
 
     @Override
     public boolean canExecute() {
+        this.recipe = ConversionMargins.getInstance(script).getCurrentRecipe();
         return new ConditionalSleep(1000){
             @Override
             public boolean condition() throws InterruptedException {
