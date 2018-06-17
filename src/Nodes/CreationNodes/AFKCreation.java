@@ -1,14 +1,13 @@
 package Nodes.CreationNodes;
 
-import Util.ComponentsEnum;
 import Util.Statics;
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 public class AFKCreation extends AbstractCreationNode {
-    public AFKCreation(Script script, ComponentsEnum components) {
-        super(script, components);
+    public AFKCreation(Script script) {
+        super(script);
     }
 
     @Override
@@ -20,7 +19,7 @@ public class AFKCreation extends AbstractCreationNode {
         new ConditionalSleep(25000) {
             @Override
             public boolean condition() throws InterruptedException {
-                return !inv.contains(components.getPrimaryItemName()) || !inv.contains(components.getSecondaryItemName());
+                return !inv.contains(recipe.getPrimaryItemName()) || !inv.contains(recipe.getSecondaryItemName());
             }
         }.sleep();
 

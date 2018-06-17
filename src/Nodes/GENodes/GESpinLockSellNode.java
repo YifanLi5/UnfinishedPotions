@@ -1,11 +1,13 @@
 package Nodes.GENodes;
 
-import GrandExchangeUtil.GrandExchangeObserver;
-import GrandExchangeUtil.GrandExchangeOperations;
-import GrandExchangeUtil.GrandExchangePolling;
-import ScriptClasses.MarkovNodeExecutor;
-import Util.ComponentsEnum;
+import Nodes.MarkovChain.Edge;
+import Nodes.MarkovChain.ExecutableNode;
+import Util.GrandExchangeUtil.GrandExchangeObserver;
+import Util.GrandExchangeUtil.GrandExchangeOperations;
+import Util.GrandExchangeUtil.GrandExchangePolling;
+import Util.Margins;
 import Util.Statics;
+import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.api.Inventory;
@@ -14,31 +16,37 @@ import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExchangeObserver {
+public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver {
     private Script script;
-    private ComponentsEnum sell;
     private GrandExchangeOperations operations;
     private GrandExchangePolling polling;
     private boolean offerUpdated, doPreventIdleAction = true;
+    private int amtTraded;
+    private GrandExchange.Box box;
+    private Margins margins;
+    private UnfPotionRecipes recipe;
 
-    GrandExchange.Box box;
+    private List<Edge> adjNodes = Collections.singletonList(new Edge(GESpinLockBuyNode.class, 1));
 
-    public GESellNode(Script script, ComponentsEnum sell) {
+    public GESpinLockSellNode(Script script) {
         this.script = script;
-        this.sell = sell;
-        this.operations = new GrandExchangeOperations();
+        this.operations = GrandExchangeOperations.getInstance(script.bot);
         this.polling = GrandExchangePolling.getInstance(script);
-        operations.exchangeContext(script.bot);
+        margins = Margins.getInstance(script);
+        recipe = margins.getCurrentRecipe();
     }
 
     @Override
     public void onGEUpdate(GrandExchange.Box box) {
         GrandExchange ge = script.getGrandExchange();
-        if(ge.getItemId(box) == sell.getFinishedItemID()){
+        if(ge.getItemId(box) == recipe.getFinishedItemID()){
             this.box = box;
+            amtTraded = ge.getAmountTraded(box);
             int amtTraded = ge.getAmountTraded(box);
             int totalAmtToTrade = ge.getAmountToTransfer(box);
             script.log("Sell offer updated, box: " + box.toString() + " has sold " + amtTraded + "/" + totalAmtToTrade + "items \nrecieved by " + this.getClass().getSimpleName());
@@ -61,53 +69,69 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
 
     @Override
     public int executeNode() throws InterruptedException {
-        logNode();
+        recipe = margins.getCurrentRecipe();
+        if(Statics.logNodes){
+            logNode();
+        }
         Inventory inv = script.getInventory();
-        if(inv.contains(sell.getFinishedItemName()) || withdrawSellItem(sell.getFinishedItemID())) {
-            if(isSellItemPending()){
-                script.log("canceling previous sell offer");
-                if(operations.abortOffersWithItem(sell.getFinishedItemName())){
-                    collect();
-                }
-            }
-            MethodProvider.sleep(1000);
-            if(inv.getAmount(995) < 5000){
-                script.log("withdrawing cash");
-                withdrawCash();
-            }
-            int[] margin = {-1,-1};
-            if(inv.getAmount(995) >= 5000){
-                margin = operations.priceCheckItem(sell.getFinishedItemID(), sell.getGeSearchTerm());
-            }
-
-            offerUpdated = false;
-            polling.registerObserver(this);
-            if(selectSellOperation(margin)) {
-                int loops = 0;
-                while(!offerUpdated){
-                    loops++;
-                    Thread.sleep(1000);
-                    script.log("Thread: " + Thread.currentThread().getId() + " is spinlocking in GESell");
-                    if(loops > 90){
-                        loops = 0;
-                        decreaseOffer();
+        if(inv.contains(recipe.getFinishedItemName()) || withdrawSellItem(recipe.getFinishedItemID())) {
+            if(inv.getAmount(recipe.getFinishedItemName()) >= 50){
+                if(isSellItemPending()){
+                    script.log("canceling previous sell offer");
+                    if(operations.abortOffersWithItem(recipe.getFinishedItemName())){
+                        collect();
                     }
                 }
-                script.log("Thread: " + Thread.currentThread().getId() + " GESell spinlock released");
-                collect();
+                MethodProvider.sleep(1000);
+                if(inv.getAmount(995) < 5000){
+                    withdrawCash();
+                }
+                int[] margin = {0 ,0};
+                boolean isConvMargin = false;
+                if(inv.getAmount(995) >= 5000){
+                    if(margins.getSecondsSinceLastUpdate(recipe) > 900){
+                        isConvMargin = true;
+                        margin = margins.findSpecificConversionMargin(recipe);
+                    } else {
+                        isConvMargin = false;
+                        margin = margins.findFinishedProductMargin(recipe);
+                        margins.updateFinishedProductSellPrice(recipe, margin[0]);
+                    }
+                }
+                offerUpdated = false;
+                polling.registerObserver(this);
+                if(selectSellOperation(margin, isConvMargin)) {
+                    int loops = 0;
+                    while(!offerUpdated && amtTraded < 14){
+                        loops++;
+                        Thread.sleep(1000);
+                        script.log("Thread: " + Thread.currentThread().getId() + " is spinlocking in GESell, loops: " + loops);
+                        if(loops > 90){
+                            loops = 0;
+                            decreaseOffer();
+                        }
+                    }
+                    script.log("Thread: " + Thread.currentThread().getId() + " GESell spinlock released");
+                    collect();
+                }
             }
         }
         return 1000;
     }
 
+    @Override
+    public List<Edge> getAdjacentNodes() {
+        return adjNodes;
+    }
+
     private boolean decreaseOffer() throws InterruptedException {
         int prevOffer = script.grandExchange.getItemPrice(box);
-        script.log("increasing offer to " + (prevOffer - 25));
-        if(operations.abortOffersWithItem(sell.getFinishedItemName())){
+        script.log("decreasing offer to " + (prevOffer - 25));
+        if(operations.abortOffersWithItem(recipe.getFinishedItemName())){
             MethodProvider.sleep(1000);
             if(collect()){
                 MethodProvider.sleep(1000);
-                return operations.sellItem(sell.getFinishedItemID(), prevOffer - 25);
+                return operations.sellAll(recipe.getFinishedNotedItemID(), prevOffer - 25);
             }
         }
         return false;
@@ -123,7 +147,7 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
                 }
             }.sleep();
             if (success) {
-                if(bank.enableMode(Bank.BankMode.WITHDRAW_NOTE)){
+                if(bank.getAmount(itemID) >= 50 && bank.enableMode(Bank.BankMode.WITHDRAW_NOTE)){
                     return bank.withdraw(itemID, Bank.WITHDRAW_ALL);
                 }
             }
@@ -135,13 +159,9 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
         boolean successfulCollect = false;
         int attempts = 0;
         while(!successfulCollect && attempts < 5){
-            successfulCollect = operations.collectAll();
+            successfulCollect = operations.collect();
             attempts++;
             MethodProvider.sleep(1000);
-        }
-        if(!successfulCollect){
-            script.log("error in collection");
-            script.stop(false);
         }
         return successfulCollect;
     }
@@ -149,7 +169,7 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
     private boolean isSellItemPending(){
         GrandExchange ge = script.getGrandExchange();
         for (GrandExchange.Box box : GrandExchange.Box.values())
-            if(ge.getItemId(box) == sell.getFinishedItemID()){
+            if(ge.getItemId(box) == recipe.getFinishedItemID()){
                 if(ge.getStatus(box) == GrandExchange.Status.COMPLETING_SALE ||
                         ge.getStatus(box) == GrandExchange.Status.PENDING_SALE ||
                         ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE){
@@ -178,11 +198,14 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
         }
     }
 
-    private boolean selectSellOperation(int[] margin) throws InterruptedException {
-        if(margin[1] - margin[0] <= 75){
-            return operations.sellItem(sell.getFinishedItemID()+1, margin[0]);
+    private boolean selectSellOperation(int[] margin, boolean isConvMargin) throws InterruptedException {
+        if(margin[0] <= 0 || margin[1] <= 0){
+            throw new RuntimeException("price check went wrong: [0,0]");
+        }
+        if(isConvMargin){
+            return operations.sellAll(recipe.getFinishedNotedItemID(), margin[1]);
         } else {
-            return operations.sellItem(sell.getFinishedItemID()+1, margin);
+            return operations.sellAll(recipe.getFinishedNotedItemID(), margin[0]);
         }
     }
 
@@ -205,8 +228,13 @@ public class GESellNode implements MarkovNodeExecutor.ExecutableNode, GrandExcha
     }
 
     @Override
-    public boolean doConditionalTraverse() {
+    public boolean isJumping() {
         return false;
+    }
+
+    @Override
+    public Class<? extends ExecutableNode> setJumpTarget() {
+        return null;
     }
 
     @Override

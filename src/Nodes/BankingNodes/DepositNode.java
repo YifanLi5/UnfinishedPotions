@@ -1,16 +1,23 @@
-package Nodes.BankingNodes.WithdrawNodes;
+package Nodes.BankingNodes;
 
-import ScriptClasses.MarkovNodeExecutor;
+import Nodes.MarkovChain.Edge;
+import Nodes.MarkovChain.ExecutableNode;
 import Util.Statics;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
+import java.util.Arrays;
+import java.util.List;
 
-public class DepositNode implements MarkovNodeExecutor.ExecutableNode {
+
+public class DepositNode implements ExecutableNode {
     private Script script;
+    private List<Edge> adjNodes = Arrays.asList(new Edge(DecideRestockNode.class, 1));
+
     public DepositNode(Script script){
         this.script = script;
+
     }
 
     @Override
@@ -20,7 +27,9 @@ public class DepositNode implements MarkovNodeExecutor.ExecutableNode {
 
     @Override
     public int executeNode() throws InterruptedException {
-        //logNode();
+        if(Statics.logNodes){
+            logNode();
+        }
         Bank bank = script.getBank();
         if(bank.open()){
             boolean success = new ConditionalSleep(1000){
@@ -41,8 +50,18 @@ public class DepositNode implements MarkovNodeExecutor.ExecutableNode {
     }
 
     @Override
-    public boolean doConditionalTraverse() {
+    public List<Edge> getAdjacentNodes() {
+        return adjNodes;
+    }
+
+    @Override
+    public boolean isJumping() {
         return false;
+    }
+
+    @Override
+    public Class<? extends ExecutableNode> setJumpTarget() {
+        return null;
     }
 
     @Override

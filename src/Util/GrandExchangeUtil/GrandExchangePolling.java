@@ -1,4 +1,4 @@
-package GrandExchangeUtil;
+package Util.GrandExchangeUtil;
 
 import org.osbot.rs07.script.Script;
 
@@ -11,6 +11,7 @@ public class GrandExchangePolling {
     private Thread geQuery;
     GrandExchangeRunnable queryRunnable;
     private static GrandExchangePolling singleton;
+    private Script script;
 
     public static GrandExchangePolling getInstance(Script script){
         if(singleton == null)
@@ -21,10 +22,14 @@ public class GrandExchangePolling {
     private GrandExchangePolling(Script script) {
         this.observers = new ArrayList<>();
         queryRunnable = new GrandExchangeRunnable(observers, script);
+        this.script = script;
     }
 
     public void registerObserver(GrandExchangeObserver o){
-        observers.add(o);
+        if(!observers.contains(o)){
+            observers.add(o);
+            script.log(o.getClass().getSimpleName() + " is now an observer");
+        }
         if(observers.size() > 0)
             startQueryingOffers();
     }
@@ -41,6 +46,7 @@ public class GrandExchangePolling {
 
     private void startQueryingOffers(){
         if(geQuery == null || !queryRunnable.isRunning()){
+            script.log("starting ge thread");
             geQuery = new Thread(queryRunnable);
             geQuery.start();
         }
