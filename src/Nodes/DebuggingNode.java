@@ -1,11 +1,9 @@
 package Nodes;
 
-import Nodes.GENodes.GESpinLockBuyNode;
+import Nodes.GENodes.IntermittentSell;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
-import Util.ConversionMargins;
 import Util.GrandExchangeUtil.GrandExchangeObserver;
-import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.script.Script;
 
@@ -15,13 +13,11 @@ import java.util.List;
 public class DebuggingNode implements GrandExchangeObserver, ExecutableNode {
 
     Script script;
-    ConversionMargins margins;
-    GESpinLockBuyNode buy;
+    IntermittentSell sell;
 
     public DebuggingNode(Script script) {
         this.script = script;
-        margins = ConversionMargins.getInstance(script);
-        buy = new GESpinLockBuyNode(script);
+        sell = new IntermittentSell(script);
     }
 
     @Override
@@ -38,8 +34,7 @@ public class DebuggingNode implements GrandExchangeObserver, ExecutableNode {
 
     @Override
     public int executeNode() throws InterruptedException {
-        margins.priceCheckAll();
-        script.log("time since lastUpdate: " + margins.getSecondsSinceLastUpdate(UnfPotionRecipes.TOADFLAX));
+        sell.executeNode();
         return 5000;
     }
 
@@ -63,7 +58,6 @@ public class DebuggingNode implements GrandExchangeObserver, ExecutableNode {
 
     }
 
-    public void stop(){
-        buy.stopThread();
-    }
+    public void stop(){}
+
 }

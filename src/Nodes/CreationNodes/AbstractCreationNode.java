@@ -3,7 +3,7 @@ package Nodes.CreationNodes;
 import Nodes.BankingNodes.DepositNode;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
-import Util.ConversionMargins;
+import Util.Margins;
 import Util.Statics;
 import Util.SupplierWithCE;
 import Util.UnfPotionRecipes;
@@ -34,12 +34,12 @@ public abstract class AbstractCreationNode implements ExecutableNode {
 
     AbstractCreationNode(Script script){
         this.script = script;
-        this.recipe = ConversionMargins.getInstance(script).getCurrentRecipe();
+        this.recipe = Margins.getInstance(script).getCurrentRecipe();
     }
 
     @Override
     public boolean canExecute() {
-        this.recipe = ConversionMargins.getInstance(script).getCurrentRecipe();
+        this.recipe = Margins.getInstance(script).getCurrentRecipe();
         return new ConditionalSleep(1000){
             @Override
             public boolean condition() throws InterruptedException {

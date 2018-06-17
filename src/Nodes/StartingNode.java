@@ -5,7 +5,7 @@ import Nodes.BankingNodes.DepositNode;
 import Nodes.CreationNodes.HoverBankerCreation;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
-import Util.ConversionMargins;
+import Util.Margins;
 import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.Inventory;
@@ -16,11 +16,11 @@ import java.util.List;
 public class StartingNode implements ExecutableNode {
     private Script script;
     private Class<? extends ExecutableNode> jumpTarget;
-    private ConversionMargins conversionMargins;
+    private Margins margins;
 
     public StartingNode(Script script) {
         this.script = script;
-        conversionMargins = ConversionMargins.getInstance(script);
+        margins = Margins.getInstance(script);
     }
 
     @Override
@@ -35,9 +35,9 @@ public class StartingNode implements ExecutableNode {
             UnfPotionRecipes todo = whichRecipeToDo();
             if(script.getBank().close()){
                 if(todo != null){ //means that there are already herbs to do
-                    conversionMargins.setCurrentRecipe(todo);
+                    margins.setCurrentRecipe(todo);
                 } else {
-                    conversionMargins.setCurrentRecipe(conversionMargins.priceCheckAll());
+                    margins.setCurrentRecipe(margins.findAllConversionMargins());
                 }
             } else {
                 throw new UnsupportedOperationException("bank didn't close???");

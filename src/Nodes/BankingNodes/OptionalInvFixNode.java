@@ -5,7 +5,7 @@ import Nodes.CreationNodes.HoverBankerCreation;
 import Nodes.CreationNodes.PrematureStopCreation;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
-import Util.ConversionMargins;
+import Util.Margins;
 import Util.Statics;
 import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Bank;
@@ -25,13 +25,13 @@ public class OptionalInvFixNode implements ExecutableNode{
             new Edge(PrematureStopCreation.class, 10));
 
     public OptionalInvFixNode(Script script) {
-        this.recipe = ConversionMargins.getInstance(script).getCurrentRecipe();
+        this.recipe = Margins.getInstance(script).getCurrentRecipe();
         this.script = script;
     }
 
     @Override
     public boolean canExecute() throws InterruptedException {
-        this.recipe = ConversionMargins.getInstance(script).getCurrentRecipe();
+        this.recipe = Margins.getInstance(script).getCurrentRecipe();
         if(Statics.logNodes){
             logNode();
         }

@@ -3,10 +3,10 @@ package Nodes.GENodes;
 import Nodes.BankingNodes.DepositNode;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
-import Util.ConversionMargins;
 import Util.GrandExchangeUtil.GrandExchangeObserver;
 import Util.GrandExchangeUtil.GrandExchangeOperations;
 import Util.GrandExchangeUtil.GrandExchangePolling;
+import Util.Margins;
 import Util.Statics;
 import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Bank;
@@ -33,7 +33,7 @@ public class GESpinLockBuyNode implements ExecutableNode, GrandExchangeObserver 
     private int amtTraded;
     private GrandExchange.Box box;
     private boolean offerUpdated;
-    private ConversionMargins conversionMargins;
+    private Margins margins;
     private UnfPotionRecipes recipe;
 
 
@@ -43,8 +43,8 @@ public class GESpinLockBuyNode implements ExecutableNode, GrandExchangeObserver 
         operations = GrandExchangeOperations.getInstance(script.bot);
         polling = GrandExchangePolling.getInstance(script);
         this.script = script;
-        conversionMargins = ConversionMargins.getInstance(script);
-        recipe = conversionMargins.getCurrentRecipe();
+        margins = Margins.getInstance(script);
+        recipe = margins.getCurrentRecipe();
     }
 
     @Override
@@ -74,7 +74,7 @@ public class GESpinLockBuyNode implements ExecutableNode, GrandExchangeObserver 
 
     @Override
     public int executeNode() throws InterruptedException {
-        recipe = conversionMargins.getCurrentRecipe();
+        recipe = margins.getCurrentRecipe();
         if(Statics.logNodes)
             logNode();
         Inventory inv = script.getInventory();
@@ -130,21 +130,21 @@ public class GESpinLockBuyNode implements ExecutableNode, GrandExchangeObserver 
 
     private int findInstantBuyPrice(boolean doConversionMarginCheck) throws InterruptedException {
         int[] margin;
-        if(conversionMargins.getSecondsSinceLastUpdate(recipe) > 900 || doConversionMarginCheck){
+        if(margins.getSecondsSinceLastUpdate(recipe) > 900 || doConversionMarginCheck){
             script.log("preforming price check on conversion for: " + recipe.name());
-            margin = conversionMargins.priceCheckSpecificConversion(recipe);
-            if(margin[1] - margin[0] < ConversionMargins.SWITCH_RECIPE_IF_LOWER){
-                UnfPotionRecipes nextRecipe = conversionMargins.priceCheckAll();
-                conversionMargins.setCurrentRecipe(nextRecipe);
-                recipe = conversionMargins.getCurrentRecipe();
-                margin = conversionMargins.getMarginOfCurrentRecipe();
+            margin = margins.findSpecificConversionMargin(recipe);
+            if(margin[1] - margin[0] < Margins.SWITCH_RECIPE_IF_LOWER){
+                UnfPotionRecipes nextRecipe = margins.findAllConversionMargins();
+                margins.setCurrentRecipe(nextRecipe);
+                recipe = margins.getCurrentRecipe();
+                margin = margins.getMarginOfCurrentRecipe();
             } else {
-                conversionMargins.updateConvMarginEntry(recipe, margin);
+                margins.updateConversionMarginEntry(recipe, margin);
             }
 
         } else {
             script.log("cached margin is acceptable");
-            margin = conversionMargins.getMarginOfCurrentRecipe();
+            margin = margins.getMarginOfCurrentRecipe();
         }
         return margin[0];
 

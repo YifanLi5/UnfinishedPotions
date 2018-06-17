@@ -42,11 +42,23 @@ public enum UnfPotionRecipes {
         return primaryItemID;
     }
 
+    public int getPrimaryNotedItemID(){
+        return primaryItemID+1;
+    }
+
     public int getSecondaryItemID() {
         return secondaryItemID;
     }
 
+    public int getSecondaryNotedItemID(){
+        return secondaryItemID+1;
+    }
+
     public int getFinishedItemID() {
         return finishedItemID;
+    }
+
+    public int getFinishedNotedItemID() {
+        return getFinishedItemID()+1;
     }
 }

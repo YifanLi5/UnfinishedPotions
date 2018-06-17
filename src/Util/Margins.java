@@ -7,17 +7,19 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
 
-public class ConversionMargins {
-    private static ConversionMargins singleton;
+public class Margins {
+    private static Margins singleton;
     private Script script;
     private HashMap<UnfPotionRecipes, int[]> marginsDB;
     private HashMap<UnfPotionRecipes, Instant> lastUpdateTimestamps;
+    private HashMap<UnfPotionRecipes, int[]> primaryIngredientMargins;
+    private HashMap<UnfPotionRecipes, int[]> finishedProductMargins;
     private GrandExchangeOperations operations;
     private UnfPotionRecipes currentRecipe;
 
     public static final int SWITCH_RECIPE_IF_LOWER = 150;
 
-    private ConversionMargins(Script script){
+    private Margins(Script script){
         this.script = script;
         operations = GrandExchangeOperations.getInstance(script.bot);
         marginsDB = new HashMap<>();
@@ -25,44 +27,76 @@ public class ConversionMargins {
         marginsDB.put(UnfPotionRecipes.TOADFLAX, null);
         marginsDB.put(UnfPotionRecipes.IRIT, null);
         marginsDB.put(UnfPotionRecipes.KWUARM, null);
+
         lastUpdateTimestamps = new HashMap<>();
         lastUpdateTimestamps.put(UnfPotionRecipes.AVANTOE, null);
         lastUpdateTimestamps.put(UnfPotionRecipes.TOADFLAX, null);
         lastUpdateTimestamps.put(UnfPotionRecipes.IRIT, null);
         lastUpdateTimestamps.put(UnfPotionRecipes.KWUARM, null);
+
+        primaryIngredientMargins = new HashMap<>();
+        primaryIngredientMargins.put(UnfPotionRecipes.AVANTOE, null);
+        primaryIngredientMargins.put(UnfPotionRecipes.TOADFLAX, null);
+        primaryIngredientMargins.put(UnfPotionRecipes.IRIT, null);
+        primaryIngredientMargins.put(UnfPotionRecipes.KWUARM, null);
+
+        finishedProductMargins = new HashMap<>();
+        finishedProductMargins.put(UnfPotionRecipes.AVANTOE, null);
+        finishedProductMargins.put(UnfPotionRecipes.TOADFLAX, null);
+        finishedProductMargins.put(UnfPotionRecipes.IRIT, null);
+        finishedProductMargins.put(UnfPotionRecipes.KWUARM, null);
     }
 
-    public static ConversionMargins getInstance(Script script){
+    public static Margins getInstance(Script script){
         if(singleton == null){
-            singleton = new ConversionMargins(script);
+            singleton = new Margins(script);
         }
         return singleton;
     }
 
-    public int[] priceCheckSpecificConversion(UnfPotionRecipes unfPotionRecipes) throws InterruptedException {
-        int[] primaryMargin = operations.priceCheckItemMargin(unfPotionRecipes.getPrimaryItemID(), unfPotionRecipes.getGeSearchTerm());
-        int[] finishedMargin = operations.priceCheckItemMargin(unfPotionRecipes.getFinishedItemID(), unfPotionRecipes.getGeSearchTerm());
-        int[] margin = {primaryMargin[1], finishedMargin[0]};
-        script.log(unfPotionRecipes.name() + " unf potion conversion has margin: " + Arrays.toString(margin) + " delta: " + (margin[1] - margin[0]));
-        return margin;
+    public int[] findFinishedProductMargin(UnfPotionRecipes product) throws InterruptedException {
+        int[] productMargin = operations.priceCheckItemMargin(product.getFinishedItemID(), product.getGeSearchTerm());
+        finishedProductMargins.put(product, productMargin);
+        return productMargin;
     }
 
-    public UnfPotionRecipes priceCheckAll() throws InterruptedException {
+    public int[] getFinishedProductMargin(UnfPotionRecipes product){
+        return finishedProductMargins.get(product);
+    }
+
+    public int[] findPrimaryIngredientMargin(UnfPotionRecipes primary) throws InterruptedException {
+        int[] primaryMargin = operations.priceCheckItemMargin(primary.getPrimaryItemID(), primary.getGeSearchTerm());
+        primaryIngredientMargins.put(primary, primaryMargin);
+        return primaryMargin;
+    }
+
+    public int[] getCachedPrimaryIngredientMargin(UnfPotionRecipes primary) {
+        return primaryIngredientMargins.get(primary);
+    }
+
+    public int[] findSpecificConversionMargin(UnfPotionRecipes unfPotionRecipes) throws InterruptedException {
+        script.log("finding conversion margin for: " + unfPotionRecipes.name());
+        int[] primaryMargin = operations.priceCheckItemMargin(unfPotionRecipes.getPrimaryItemID(), unfPotionRecipes.getGeSearchTerm());
+        int[] finishedProductMargin = operations.priceCheckItemMargin(unfPotionRecipes.getFinishedItemID(), unfPotionRecipes.getGeSearchTerm());
+        int[] conversionMargin = {primaryMargin[1], finishedProductMargin[0]};
+
+        primaryIngredientMargins.replace(unfPotionRecipes, primaryMargin);
+        marginsDB.replace(unfPotionRecipes, conversionMargin);
+        lastUpdateTimestamps.replace(unfPotionRecipes, Instant.now());
+        script.log(unfPotionRecipes.name() + " unf potion conversion has margin: " + Arrays.toString(conversionMargin) + " delta: " + (conversionMargin[1] - conversionMargin[0]));
+        return conversionMargin;
+    }
+
+    public UnfPotionRecipes findAllConversionMargins() throws InterruptedException {
         int bestDeltaMargin = 0;
         UnfPotionRecipes best = null;
         for(UnfPotionRecipes conv : marginsDB.keySet()){
-            script.log("finding conversion margin for: " + conv.name());
-            int[] primaryMargin = operations.priceCheckItemMargin(conv.getPrimaryItemID(), conv.getGeSearchTerm());
-            int[] finishedMargin = operations.priceCheckItemMargin(conv.getFinishedItemID(), conv.getGeSearchTerm());
-            int[] convMargin = {primaryMargin[1], finishedMargin[0]};
-            marginsDB.replace(conv, convMargin);
-            script.log(conv.name() + " unf potion conversion has margin: " + Arrays.toString(convMargin) + " delta: " + (convMargin[1] - convMargin[0]));
-            int marginDelta = convMargin[1] - convMargin[0];
+            int[] conversionMargin = findSpecificConversionMargin(conv);
+            int marginDelta = conversionMargin[1] - conversionMargin[0];
             if(marginDelta > bestDeltaMargin){
                 bestDeltaMargin = marginDelta;
                 best = conv;
             }
-            lastUpdateTimestamps.put(conv, Instant.now());
         }
         if(best != null){
             script.log(best.name() + " has best delta margin at: " + bestDeltaMargin + " with margin: " + Arrays.toString(marginsDB.get(best)));
@@ -73,7 +107,7 @@ public class ConversionMargins {
         return best;
     }
 
-    public void updateConvMarginEntry(UnfPotionRecipes recipe, int[] newMargin){
+    public void updateConversionMarginEntry(UnfPotionRecipes recipe, int[] newMargin){
         marginsDB.put(recipe, newMargin);
         lastUpdateTimestamps.put(recipe, Instant.now());
     }
@@ -95,7 +129,7 @@ public class ConversionMargins {
             script.log("last update was: " + secondsAgo + " ago");
             return secondsAgo;
         }
-        script.log("no last update returning INT_MAX");
+        script.log("there was no last update");
         return Integer.MAX_VALUE;
     }
 

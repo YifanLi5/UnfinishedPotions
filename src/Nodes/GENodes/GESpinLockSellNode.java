@@ -2,10 +2,10 @@ package Nodes.GENodes;
 
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
-import Util.ConversionMargins;
 import Util.GrandExchangeUtil.GrandExchangeObserver;
 import Util.GrandExchangeUtil.GrandExchangeOperations;
 import Util.GrandExchangeUtil.GrandExchangePolling;
+import Util.Margins;
 import Util.Statics;
 import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Bank;
@@ -28,7 +28,7 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
     private boolean offerUpdated, doPreventIdleAction = true;
     private int amtTraded;
     private GrandExchange.Box box;
-    private ConversionMargins conversionMargins;
+    private Margins margins;
     private UnfPotionRecipes recipe;
 
     private List<Edge> adjNodes = Collections.singletonList(new Edge(GESpinLockBuyNode.class, 1));
@@ -37,8 +37,8 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
         this.script = script;
         this.operations = GrandExchangeOperations.getInstance(script.bot);
         this.polling = GrandExchangePolling.getInstance(script);
-        conversionMargins = ConversionMargins.getInstance(script);
-        recipe = conversionMargins.getCurrentRecipe();
+        margins = Margins.getInstance(script);
+        recipe = margins.getCurrentRecipe();
     }
 
     @Override
@@ -69,7 +69,7 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
 
     @Override
     public int executeNode() throws InterruptedException {
-        recipe = conversionMargins.getCurrentRecipe();
+        recipe = margins.getCurrentRecipe();
         if(Statics.logNodes){
             logNode();
         }
@@ -89,13 +89,13 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
                 int[] margin = {0 ,0};
                 boolean isConvMargin = false;
                 if(inv.getAmount(995) >= 5000){
-                    if(conversionMargins.getSecondsSinceLastUpdate(recipe) > 900){
+                    if(margins.getSecondsSinceLastUpdate(recipe) > 900){
                         isConvMargin = true;
-                        margin = conversionMargins.priceCheckSpecificConversion(recipe);
+                        margin = margins.findSpecificConversionMargin(recipe);
                     } else {
                         isConvMargin = false;
-                        margin = operations.priceCheckItemMargin(recipe.getFinishedItemID(), recipe.getGeSearchTerm());
-                        conversionMargins.updateFinishedProductSellPrice(recipe, margin[0]);
+                        margin = margins.findFinishedProductMargin(recipe);
+                        margins.updateFinishedProductSellPrice(recipe, margin[0]);
                     }
                 }
                 offerUpdated = false;
@@ -126,12 +126,12 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
 
     private boolean decreaseOffer() throws InterruptedException {
         int prevOffer = script.grandExchange.getItemPrice(box);
-        script.log("increasing offer to " + (prevOffer - 25));
+        script.log("decreasing offer to " + (prevOffer - 25));
         if(operations.abortOffersWithItem(recipe.getFinishedItemName())){
             MethodProvider.sleep(1000);
             if(collect()){
                 MethodProvider.sleep(1000);
-                return operations.sellAll(recipe.getFinishedItemID(), prevOffer - 25);
+                return operations.sellAll(recipe.getFinishedNotedItemID(), prevOffer - 25);
             }
         }
         return false;
@@ -203,9 +203,9 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
             throw new RuntimeException("price check went wrong: [0,0]");
         }
         if(isConvMargin){
-            return operations.sellAll(recipe.getFinishedItemID()+1, margin[1]);
+            return operations.sellAll(recipe.getFinishedNotedItemID(), margin[1]);
         } else {
-            return operations.sellAll(recipe.getFinishedItemID()+1, margin[0]);
+            return operations.sellAll(recipe.getFinishedNotedItemID(), margin[0]);
         }
     }
 

@@ -15,6 +15,8 @@ import Nodes.CreationNodes.PrematureStopCreation;
 import Nodes.DebuggingNode;
 import Nodes.GENodes.GESpinLockBuyNode;
 import Nodes.GENodes.GESpinLockSellNode;
+import Nodes.GENodes.IntermittentBuy;
+import Nodes.GENodes.IntermittentSell;
 import Nodes.MarkovChain.MarkovNodeExecutor;
 import Nodes.StartingNode;
 import Util.Statics;
@@ -28,8 +30,8 @@ import static ScriptClasses.MainScript.SCRIPT_NAME;
 
 @ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
 public class MainScript extends Script {
-    static final String SCRIPT_NAME = "convMargins";
-    static final int BUILD_NUM = 11;
+    static final String SCRIPT_NAME = "Intermittent Buy/Sell";
+    static final int BUILD_NUM = 1;
     private MarkovNodeExecutor executor;
     private GESpinLockBuyNode buy;
     private GESpinLockSellNode sell;
@@ -79,8 +81,10 @@ public class MainScript extends Script {
 
         buy = new GESpinLockBuyNode(this);
         sell = new GESpinLockSellNode(this);
+        IntermittentBuy randBuy = new IntermittentBuy(this);
+        IntermittentSell randSell = new IntermittentSell(this);
 
-        executor = new MarkovNodeExecutor(start, w10P, w14P, wXP, w10S, w14S, wXS, restock, deposit, fix, afk, hover, premature, buy, sell);
+        executor = new MarkovNodeExecutor(start, w10P, w14P, wXP, w10S, w14S, wXS, restock, deposit, fix, afk, hover, premature, buy, sell, randBuy, randSell);
     }
 
     @Override
