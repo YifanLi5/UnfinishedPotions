@@ -2,12 +2,11 @@ package Nodes.GENodes;
 
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
-import Util.GrandExchangeUtil.GrandExchangeObserver;
 import Util.GrandExchangeUtil.GrandExchangeOperations;
 import Util.GrandExchangeUtil.GrandExchangePolling;
+import Util.ItemCombinationRecipes;
 import Util.Margins;
 import Util.Statics;
-import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.api.Inventory;
@@ -18,18 +17,13 @@ import org.osbot.rs07.utility.ConditionalSleep;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
-public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver {
+public class GESpinLockSellNode implements ExecutableNode {
     private Script script;
     private GrandExchangeOperations operations;
     private GrandExchangePolling polling;
-    private boolean offerUpdated, doPreventIdleAction = true;
-    private int amtTraded;
-    private GrandExchange.Box box;
     private Margins margins;
-    private UnfPotionRecipes recipe;
+    private ItemCombinationRecipes recipe;
 
     private List<Edge> adjNodes = Collections.singletonList(new Edge(GESpinLockBuyNode.class, 1));
 
@@ -39,26 +33,6 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
         this.polling = GrandExchangePolling.getInstance(script);
         margins = Margins.getInstance(script);
         recipe = margins.getCurrentRecipe();
-    }
-
-    @Override
-    public void onGEUpdate(GrandExchange.Box box) {
-        GrandExchange ge = script.getGrandExchange();
-        if(ge.getItemId(box) == recipe.getFinishedItemID()){
-            this.box = box;
-            amtTraded = ge.getAmountTraded(box);
-            int amtTraded = ge.getAmountTraded(box);
-            int totalAmtToTrade = ge.getAmountToTransfer(box);
-            script.log("Sell offer updated, box: " + box.toString() + " has sold " + amtTraded + "/" + totalAmtToTrade + "items \nrecieved by " + this.getClass().getSimpleName());
-            offerUpdated = true;
-            if(ge.getStatus(box) == GrandExchange.Status.FINISHED_SALE){
-                if(amtTraded == totalAmtToTrade){
-                    script.log("Buy offer finished");
-                } else {
-                    script.log("Offer canceled");
-                }
-            }
-        }
     }
 
     @Override
@@ -79,7 +53,10 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
                 if(isSellItemPending()){
                     script.log("canceling previous sell offer");
                     if(operations.abortOffersWithItem(recipe.getFinishedItemName())){
-                        collect();
+                        if(collect())
+                            script.log("collected aborted offer");
+                        else
+                            script.warn("failed to collect aborted offer");
                     }
                 }
                 MethodProvider.sleep(1000);
@@ -98,22 +75,13 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
                         margins.updateFinishedProductSellPrice(recipe, margin[0]);
                     }
                 }
-                offerUpdated = false;
-                polling.registerObserver(this);
-                if(selectSellOperation(margin, isConvMargin)) {
-                    int loops = 0;
-                    while(!offerUpdated && amtTraded < 14){
-                        loops++;
-                        Thread.sleep(1000);
-                        script.log("Thread: " + Thread.currentThread().getId() + " is spinlocking in GESell, loops: " + loops);
-                        if(loops > 90){
-                            loops = 0;
-                            decreaseOffer();
-                        }
-                    }
-                    script.log("Thread: " + Thread.currentThread().getId() + " GESell spinlock released");
-                    collect();
-                }
+
+                spinLockUntilOfferUpdates(margin, isConvMargin);
+                if(operations.collect())
+                    script.log("collected gp from selling");
+                else
+                    script.warn("failed to collect gp from offer");
+
             }
         }
         return 1000;
@@ -124,8 +92,47 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
         return adjNodes;
     }
 
-    private boolean decreaseOffer() throws InterruptedException {
-        int prevOffer = script.grandExchange.getItemPrice(box);
+    private void spinLockUntilOfferUpdates(int[] margin, boolean isConvMargin) throws InterruptedException {
+        if(selectSellOperation(margin, isConvMargin)) {
+            int loops = 0;
+            GrandExchange.Box sellingBox = findFinishedProductSellingBox();
+            boolean lock = true;
+            script.log("Entering spinlocking in GESell");
+            while(lock){
+                loops++;
+                Thread.sleep(1000);
+                if(loops > 60){
+                    loops = 0;
+                    if(decreaseOffer(sellingBox)){
+                        script.log("decrease offer successful");
+                    } else{
+                        script.warn("decrease offer unsuccessful");
+                    }
+                    lock = doContinueLocking(sellingBox);
+                }
+            }
+            script.log("GESell spinlock released");
+            collect();
+        }
+    }
+
+    private boolean doContinueLocking(GrandExchange.Box sellingBox){
+        GrandExchange ge = script.getGrandExchange();
+        double percentComplete = ge.getAmountTraded(sellingBox) / ge.getAmountToTransfer(sellingBox);
+        return percentComplete < 0.25;
+    }
+
+    private GrandExchange.Box findFinishedProductSellingBox(){
+        for(GrandExchange.Box box: GrandExchange.Box.values()){
+            if(operations.getItemId(box) == recipe.getFinishedItemID()){
+                return box;
+            }
+        }
+        return null;
+    }
+
+    private boolean decreaseOffer(GrandExchange.Box abortMe) throws InterruptedException {
+        int prevOffer = script.grandExchange.getItemPrice(abortMe);
         script.log("decreasing offer to " + (prevOffer - 25));
         if(operations.abortOffersWithItem(recipe.getFinishedItemName())){
             MethodProvider.sleep(1000);
@@ -181,23 +188,6 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
         return false;
     }
 
-    private void preventIdleLogout() throws InterruptedException {
-        if(doPreventIdleAction){
-
-            int yaw = script.camera.getYawAngle();
-            if(script.camera.moveYaw(yaw + MethodProvider.random(-15, 15))){
-                doPreventIdleAction = false;
-                int nextAction = (int) Statics.randomNormalDist(200000, 25000);
-                new Timer().schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        doPreventIdleAction = true;
-                    }
-                }, nextAction);
-            }
-        }
-    }
-
     private boolean selectSellOperation(int[] margin, boolean isConvMargin) throws InterruptedException {
         if(margin[0] <= 0 || margin[1] <= 0){
             throw new RuntimeException("price check went wrong: [0,0]");
@@ -219,9 +209,13 @@ public class GESpinLockSellNode implements ExecutableNode, GrandExchangeObserver
                 }
             }.sleep();
             if(success){
-                if(bank.getAmount(995) > 0){
-                    return bank.withdraw(995, Bank.WITHDRAW_ALL) && bank.close();
-                }
+                int bankedCoins = (int) bank.getAmount(995);
+                if(bankedCoins > 10000){
+                    int withdrawAmt = (bankedCoins - 10000)/ 1000 * 1000;
+                    if(withdrawAmt == 0){
+                        return true;
+                    } else return bank.withdraw(995, withdrawAmt) && bank.close();
+                } else return bankedCoins < 10000 && script.getInventory().contains(995);
             }
         }
         return false;

@@ -13,6 +13,9 @@ public class WithdrawXPrimary extends AbstractWithdrawPrimary {
 
     @Override
     boolean withdrawPrimary() throws InterruptedException {
+        if(containsForeignItem()){
+            isJumping = true;
+        }
         Bank bank = script.getBank();
         if(!script.getInventory().isEmptyExcept(recipe.getSecondaryItemName()))
             script.getBank().depositAllExcept(recipe.getSecondaryItemName());

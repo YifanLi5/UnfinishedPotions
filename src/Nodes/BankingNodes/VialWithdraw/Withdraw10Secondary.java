@@ -10,8 +10,9 @@ public class Withdraw10Secondary extends AbstractWithdrawSecondary {
 
     @Override
     boolean withdrawSecondary() {
-        if(!script.getInventory().isEmptyExcept(recipe.getPrimaryItemName()))
-            script.getBank().depositAllExcept(recipe.getPrimaryItemName());
+        if(containsForeignItem()){
+            isJumping = true;
+        }
         return script.getBank().withdraw(recipe.getSecondaryItemName(), 10);
     }
 

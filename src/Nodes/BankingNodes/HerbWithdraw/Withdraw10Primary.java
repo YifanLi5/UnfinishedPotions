@@ -12,6 +12,9 @@ public class Withdraw10Primary extends AbstractWithdrawPrimary {
 
     @Override
     boolean withdrawPrimary() {
+        if(containsForeignItem()){
+            isJumping = true;
+        }
         return script.getBank().withdraw(recipe.getPrimaryItemName(), 10);
     }
 

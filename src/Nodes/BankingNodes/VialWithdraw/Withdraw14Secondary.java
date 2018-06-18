@@ -13,6 +13,9 @@ public class Withdraw14Secondary extends AbstractWithdrawSecondary {
 
     @Override
     boolean withdrawSecondary() {
+        if(containsForeignItem()){
+            isJumping = true;
+        }
         if(script.getInventory().contains(recipe.getPrimaryItemName())){
             if(ThreadLocalRandom.current().nextBoolean()){
                 return script.getBank().withdraw(recipe.getSecondaryItemName(), Bank.WITHDRAW_ALL);

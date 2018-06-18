@@ -4,9 +4,9 @@ import Nodes.BankingNodes.DepositNode;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
 import Util.GrandExchangeUtil.GrandExchangeOperations;
+import Util.ItemCombinationRecipes;
 import Util.Margins;
 import Util.Statics;
-import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.api.model.NPC;
@@ -21,7 +21,7 @@ public class IntermittentBuy implements ExecutableNode{
 
     private Script script;
     private Margins margins;
-    private UnfPotionRecipes recipe;
+    private ItemCombinationRecipes recipe;
     private GrandExchangeOperations operations;
 
     public IntermittentBuy(Script script) {
@@ -42,10 +42,16 @@ public class IntermittentBuy implements ExecutableNode{
         script.log("executing IntermittentBuy");
         recipe = margins.getCurrentRecipe();
         int[] cachedMargin = margins.getCachedPrimaryIngredientMargin(recipe);
-        if(cachedMargin == null || cachedMargin[0] <= 0 || cachedMargin[1] <= 0)
+        if(cachedMargin == null || cachedMargin[0] >= 100000 || cachedMargin[1] <= 0)
             cachedMargin = margins.findPrimaryIngredientMargin(recipe);
+        script.log("withdraw cash");
         if(withdrawCash()){
+            if(openGE()){
+
+            }
+
             GrandExchange.Box buyingBox = findPrimaryIngredientBuyingBox();
+            script.log("buying box: " + buyingBox);
             if(buyingBox != null){
                 if(operations.abortOffersWithItem(recipe.getPrimaryItemName())){
                     Statics.longRandomNormalDelay();
@@ -57,11 +63,12 @@ public class IntermittentBuy implements ExecutableNode{
             }
             else{
                 GrandExchange.Box sellingBox = findFinishedProductSellingBox();
+                script.log("selling box: " + buyingBox);
                 if(sellingBox != null){
                     int soldFinishedProducts = operations.getAmountTraded(sellingBox);
-                    operations.buyUpToLimit(recipe.getPrimaryItemID(), recipe.getGeSearchTerm(), (cachedMargin[0] + cachedMargin[1]) / 2, soldFinishedProducts);
-                }
-                operations.buyUpToLimit(recipe.getPrimaryItemID(), recipe.getGeSearchTerm(), (cachedMargin[0] + cachedMargin[1]) / 2, 500);
+                    if(soldFinishedProducts >= 0)
+                        operations.buyUpToLimit(recipe.getPrimaryItemID(), recipe.getGeSearchTerm(), (cachedMargin[0] + cachedMargin[1]) / 2, soldFinishedProducts);
+                } else operations.buyUpToLimit(recipe.getPrimaryItemID(), recipe.getGeSearchTerm(), (cachedMargin[0] + cachedMargin[1]) / 2, 500);
             }
         }
 
@@ -101,17 +108,38 @@ public class IntermittentBuy implements ExecutableNode{
                 }
             }.sleep();
             if(success){
-                if(bank.getAmount(995) >= 0){
-                    return bank.withdraw(995, Bank.WITHDRAW_ALL) && bank.close();
-                }
+                int bankedCoins = (int) bank.getAmount(995);
+                if(bankedCoins > 10000){
+                    int withdrawAmt = (bankedCoins - 10000)/ 1000 * 1000;
+                    if(withdrawAmt == 0){
+                      return true;
+                    } else return bank.withdraw(995, withdrawAmt) && bank.close();
+                } else return bankedCoins < 10000 && script.getInventory().contains(995);
             }
         }
         return false;
     }
 
+    private boolean openGE() {
+        GrandExchange ge = script.getGrandExchange();
+        if(!ge.isOpen()){
+            NPC grandExchangeClerk = script.getNpcs().closest("Grand Exchange Clerk");
+            if(grandExchangeClerk != null){
+                boolean didInteraction = grandExchangeClerk.interact("Exchange");
+                return new ConditionalSleep(1000){
+                    @Override
+                    public boolean condition() throws InterruptedException {
+                        return didInteraction && ge.isOpen();
+                    }
+                }.sleep();
+            }
+        }
+        return true;
+    }
+
     private GrandExchange.Box findPrimaryIngredientBuyingBox(){
         for(GrandExchange.Box box: GrandExchange.Box.values()){
-            if(operations.getItemId(box) == recipe.getFinishedItemID()){
+            if(operations.getItemId(box) == recipe.getPrimaryItemID()){
                 return box;
             }
         }

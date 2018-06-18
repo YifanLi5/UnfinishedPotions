@@ -28,10 +28,10 @@ import java.awt.*;
 import static ScriptClasses.MainScript.BUILD_NUM;
 import static ScriptClasses.MainScript.SCRIPT_NAME;
 
-@ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
+@ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "item combiner, but mainly used for unf potions", version = 0.5, logo = "")
 public class MainScript extends Script {
-    static final String SCRIPT_NAME = "Intermittent Buy/Sell";
-    static final int BUILD_NUM = 1;
+    static final String SCRIPT_NAME = "QA TIME";
+    static final int BUILD_NUM = 5;
     private MarkovNodeExecutor executor;
     private GESpinLockBuyNode buy;
     private GESpinLockSellNode sell;

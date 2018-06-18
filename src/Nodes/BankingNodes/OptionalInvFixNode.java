@@ -5,9 +5,9 @@ import Nodes.CreationNodes.HoverBankerCreation;
 import Nodes.CreationNodes.PrematureStopCreation;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
+import Util.ItemCombinationRecipes;
 import Util.Margins;
 import Util.Statics;
-import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.script.Script;
@@ -16,7 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class OptionalInvFixNode implements ExecutableNode{
-    private UnfPotionRecipes recipe;
+    private ItemCombinationRecipes recipe;
     private Script script;
 
     private List<Edge> adjNodes = Arrays.asList(

@@ -11,19 +11,20 @@ import Nodes.GENodes.IntermittentBuy;
 import Nodes.GENodes.IntermittentSell;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
+import Util.ItemCombinationRecipes;
 import Util.Margins;
 import Util.Statics;
-import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.script.Script;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class DecideRestockNode implements ExecutableNode {
     private Script script;
-    private UnfPotionRecipes recipe;
+    private ItemCombinationRecipes recipe;
     private boolean isJumping = false;
     private Class<? extends ExecutableNode> jumpTarget;
     private List<Edge> adjNodes;
@@ -42,7 +43,8 @@ public class DecideRestockNode implements ExecutableNode {
                 new Edge(Withdraw14Secondary.class, 90),
                 new Edge(WithdrawXSecondary.class, 10
                 ));
-        unfCountMinThreshold = (int) Statics.randomNormalDist(350, 50);
+        unfCountMinThreshold = ThreadLocalRandom.current().nextInt(300, 600);
+        script.log(IntermittentSell.class.getSimpleName() + " runs when there are " + unfCountMinThreshold + " unf potions");
     }
 
     @Override
@@ -58,32 +60,39 @@ public class DecideRestockNode implements ExecutableNode {
         }
         Bank bank = script.getBank();
         int primaryRemaining = (int) bank.getAmount(recipe.getPrimaryItemName());
-        if(primaryRemaining < 14){
-            isJumping = true;
-            jumpTarget = GESpinLockSellNode.class;
-        } else if(isJumpingToIntermittentSell()){
-            isJumping = true;
-            jumpTarget = IntermittentSell.class;
-        } else if(isJumpingToIntermittentBuy()){
-            isJumping = true;
-            jumpTarget = IntermittentBuy.class;
+        if(isDoingUNFPotions()){
+            if(primaryRemaining < 14){
+                isJumping = true;
+                jumpTarget = GESpinLockSellNode.class;
+            } else if(isJumpingToIntermittentSell()){
+                isJumping = true;
+                jumpTarget = IntermittentSell.class;
+            } else if(isJumpingToIntermittentBuy()){
+                isJumping = true;
+                jumpTarget = IntermittentBuy.class;
+            }
         }
 
         int secondaryRemaining = (int) bank.getAmount(recipe.getSecondaryItemName());
-        if(secondaryRemaining < 14){
+        if(secondaryRemaining < 14 ||(!isDoingUNFPotions() &&  primaryRemaining < 14)){
             script.stop(false);
+            script.log("ran out of secondary or is not doing unf pots");
             //TODO: buy vials
         }
-
-
         return 0;
+    }
+
+    private boolean isDoingUNFPotions(){
+        return !(recipe == ItemCombinationRecipes.CLAY || recipe == ItemCombinationRecipes.AIR_BATTLESTAFF);
     }
 
     private boolean isJumpingToIntermittentSell(){
         int unfCount = (int) script.getBank().getAmount(recipe.getFinishedItemName());
-        int primaryIngredientCount = (int) script.getBank().getAmount(recipe.getPrimaryItemName());
-        if(unfCount > primaryIngredientCount && unfCount > unfCountMinThreshold){
-            unfCountMinThreshold = (int) Statics.randomNormalDist(350, 50);
+        if(unfCount > unfCountMinThreshold){
+            int amtPrimary = (int) script.getBank().getAmount(recipe.getPrimaryItemName());
+            int bound = amtPrimary - 200 < 600 ? amtPrimary : 600;
+            unfCountMinThreshold = ThreadLocalRandom.current().nextInt(200, bound);
+            script.log(IntermittentSell.class.getSimpleName() + " runs when there are " + unfCountMinThreshold + " unf potions");
             return true;
         }
         return false;

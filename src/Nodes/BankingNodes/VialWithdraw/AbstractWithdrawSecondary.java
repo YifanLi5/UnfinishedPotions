@@ -1,5 +1,6 @@
 package Nodes.BankingNodes.VialWithdraw;
 
+import Nodes.BankingNodes.DepositNode;
 import Nodes.BankingNodes.HerbWithdraw.Withdraw10Primary;
 import Nodes.BankingNodes.HerbWithdraw.Withdraw14Primary;
 import Nodes.BankingNodes.HerbWithdraw.WithdrawXPrimary;
@@ -9,9 +10,9 @@ import Nodes.CreationNodes.HoverBankerCreation;
 import Nodes.CreationNodes.PrematureStopCreation;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
+import Util.ItemCombinationRecipes;
 import Util.Margins;
 import Util.Statics;
-import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.script.Script;
@@ -21,7 +22,8 @@ import java.util.List;
 
 public abstract class AbstractWithdrawSecondary implements ExecutableNode{
     Script script;
-    UnfPotionRecipes recipe;
+    ItemCombinationRecipes recipe;
+    boolean isJumping = false;
 
     private List<Edge> prePrimaryNodes = Arrays.asList(
             new Edge(Withdraw10Primary.class, 5),
@@ -77,20 +79,28 @@ public abstract class AbstractWithdrawSecondary implements ExecutableNode{
 
     private boolean invContainsPrimaryComponent(){
         Inventory inv = script.getInventory();
-        return inv.contains(UnfPotionRecipes.AVANTOE.getPrimaryItemName())
-                || inv.contains(UnfPotionRecipes.TOADFLAX.getPrimaryItemName())
-                || inv.contains(UnfPotionRecipes.RANARR.getPrimaryItemName())
-                || inv.contains(UnfPotionRecipes.IRIT.getPrimaryItemName())
-                || inv.contains(UnfPotionRecipes.KWUARM.getPrimaryItemName());
+        return inv.contains(ItemCombinationRecipes.AVANTOE.getPrimaryItemName())
+                || inv.contains(ItemCombinationRecipes.TOADFLAX.getPrimaryItemName())
+                || inv.contains(ItemCombinationRecipes.RANARR.getPrimaryItemName())
+                || inv.contains(ItemCombinationRecipes.IRIT.getPrimaryItemName())
+                || inv.contains(ItemCombinationRecipes.KWUARM.getPrimaryItemName());
     }
 
     @Override
     public boolean isJumping() {
+        if(isJumping){
+            isJumping = false;
+            return true;
+        }
         return false;
     }
 
     @Override
     public Class<? extends ExecutableNode> setJumpTarget() {
-        return null;
+        return DepositNode.class;
+    }
+
+    boolean containsForeignItem(){
+        return !script.getInventory().isEmptyExcept(recipe.getPrimaryItemID(), recipe.getSecondaryItemID());
     }
 }

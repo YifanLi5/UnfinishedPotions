@@ -1,9 +1,11 @@
 package Nodes;
 
-import Nodes.GENodes.IntermittentSell;
+import Nodes.GENodes.IntermittentBuy;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
 import Util.GrandExchangeUtil.GrandExchangeObserver;
+import Util.ItemCombinationRecipes;
+import Util.Margins;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.script.Script;
 
@@ -13,11 +15,12 @@ import java.util.List;
 public class DebuggingNode implements GrandExchangeObserver, ExecutableNode {
 
     Script script;
-    IntermittentSell sell;
+    IntermittentBuy buy;
 
     public DebuggingNode(Script script) {
         this.script = script;
-        sell = new IntermittentSell(script);
+        buy = new IntermittentBuy(script);
+        Margins.getInstance(script).setCurrentRecipe(ItemCombinationRecipes.IRIT);
     }
 
     @Override
@@ -34,7 +37,7 @@ public class DebuggingNode implements GrandExchangeObserver, ExecutableNode {
 
     @Override
     public int executeNode() throws InterruptedException {
-        sell.executeNode();
+        buy.executeNode();
         return 5000;
     }
 

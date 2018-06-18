@@ -4,9 +4,9 @@ import Nodes.BankingNodes.DepositNode;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
 import Util.GrandExchangeUtil.GrandExchangeOperations;
+import Util.ItemCombinationRecipes;
 import Util.Margins;
 import Util.Statics;
-import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.api.model.NPC;
@@ -21,13 +21,13 @@ public class IntermittentSell implements ExecutableNode {
 
     private Script script;
     private Margins margins;
-    private UnfPotionRecipes recipe;
+    private ItemCombinationRecipes recipe;
     private GrandExchangeOperations operations;
 
     public IntermittentSell(Script script) {
         this.script = script;
         margins = Margins.getInstance(script);
-        margins.setCurrentRecipe(UnfPotionRecipes.AVANTOE);
+        margins.setCurrentRecipe(ItemCombinationRecipes.AVANTOE);
         recipe = margins.getCurrentRecipe();
         operations = GrandExchangeOperations.getInstance(script.bot);
     }
@@ -42,17 +42,17 @@ public class IntermittentSell implements ExecutableNode {
     public int executeNode() throws InterruptedException {
         script.log("executing IntermittentSell");
         recipe = margins.getCurrentRecipe();
-        int[] cachedMargin = margins.getFinishedProductMargin(recipe);
-        if(cachedMargin == null || cachedMargin[0] <= 0 || cachedMargin[1] <= 0){
-            cachedMargin = margins.findFinishedProductMargin(recipe);
-        }
         if(withdrawSellItem(recipe.getFinishedItemID())){
+            int[] cachedMargin = margins.getFinishedProductMargin(recipe);
+            if(cachedMargin == null || cachedMargin[0] <= 0 || cachedMargin[1] <= 0){
+                cachedMargin = margins.findFinishedProductMargin(recipe);
+            }
             GrandExchange.Box sellingBox = findFinishedProductSellingBox();
             if(sellingBox != null){ //there exists a box that is currently selling the finished product
                 if(operations.abortOffersWithItem(recipe.getFinishedItemName())){
                     Statics.longRandomNormalDelay();
                     if(operations.collect()){
-                        Statics.shortRandomNormalDelay();
+                        MethodProvider.sleep(2000);
                         decreaseOffer(cachedMargin, sellingBox);
                     }
                 }
@@ -60,7 +60,6 @@ public class IntermittentSell implements ExecutableNode {
                 operations.sellAll(recipe.getFinishedNotedItemID(), (cachedMargin[0] + cachedMargin[1]) / 2);
             }
         }
-
         return (int) Statics.randomNormalDist(1500, 500);
     }
 
@@ -80,9 +79,9 @@ public class IntermittentSell implements ExecutableNode {
             int newSellPrice = oldSellOffer - decrementFactor;
             script.log("decreasing sell offer to " + newSellPrice);
             if(operations.abortOffersWithItem(recipe.getFinishedItemName())){
-                MethodProvider.sleep(1000);
+                MethodProvider.sleep(2000);
                 if(operations.collect()){
-                    MethodProvider.sleep(1000);
+                    MethodProvider.sleep(2000);
                     return operations.sellAll(recipe.getFinishedNotedItemID(), newSellPrice);
                 }
             }

@@ -3,12 +3,11 @@ package Nodes.GENodes;
 import Nodes.BankingNodes.DepositNode;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
-import Util.GrandExchangeUtil.GrandExchangeObserver;
 import Util.GrandExchangeUtil.GrandExchangeOperations;
 import Util.GrandExchangeUtil.GrandExchangePolling;
+import Util.ItemCombinationRecipes;
 import Util.Margins;
 import Util.Statics;
-import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.api.Inventory;
@@ -24,19 +23,14 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 
-public class GESpinLockBuyNode implements ExecutableNode, GrandExchangeObserver {
+public class GESpinLockBuyNode implements ExecutableNode {
 
     private final Script script;
     private GrandExchangeOperations operations;
     private GrandExchangePolling polling;
     private boolean doPreventIdleAction = true;
-    private int amtTraded;
-    private GrandExchange.Box box;
-    private boolean offerUpdated;
     private Margins margins;
-    private UnfPotionRecipes recipe;
-
-
+    private ItemCombinationRecipes recipe;
     private List<Edge> adjNodes = Collections.singletonList(new Edge(DepositNode.class, 1));
 
     public GESpinLockBuyNode(Script script){
@@ -45,25 +39,7 @@ public class GESpinLockBuyNode implements ExecutableNode, GrandExchangeObserver 
         this.script = script;
         margins = Margins.getInstance(script);
         recipe = margins.getCurrentRecipe();
-    }
 
-    @Override
-    public void onGEUpdate(GrandExchange.Box box) {
-        GrandExchange ge = script.getGrandExchange();
-        if(ge.getItemId(box) == recipe.getPrimaryItemID()){
-            this.box = box;
-            amtTraded = ge.getAmountTraded(box);
-            int totalAmtToTrade = ge.getAmountToTransfer(box);
-            script.log("Buy offer updated, box: " + box.toString() + " has bought " + amtTraded + "/" + totalAmtToTrade + "items \nrecieved by " + this.getClass().getSimpleName());
-            offerUpdated = true;
-            if(ge.getStatus(box) == GrandExchange.Status.FINISHED_BUY){
-                if(amtTraded == totalAmtToTrade){
-                    script.log("Buy offer finished");
-                } else {
-                    script.log("Offer canceled");
-                }
-            }
-        }
     }
 
     @Override
@@ -98,7 +74,7 @@ public class GESpinLockBuyNode implements ExecutableNode, GrandExchangeObserver 
 
             MethodProvider.sleep(1000);
             if(inv.getAmount(995) >= 300000){
-                int buyPrice = findInstantBuyPrice(doConversionMarginCheck);
+                int buyPrice = findBuyPrice(doConversionMarginCheck);
                 spinLockUntilOfferUpdates(buyPrice);
                 Statics.longRandomNormalDelay();
                 if(operations.collect()){
@@ -110,31 +86,63 @@ public class GESpinLockBuyNode implements ExecutableNode, GrandExchangeObserver 
     }
 
     private void spinLockUntilOfferUpdates(int buyPrice) throws InterruptedException {
-        offerUpdated = false;
-        polling.registerObserver(this);
         if (operations.buyUpToLimit(recipe.getPrimaryItemID(), recipe.getGeSearchTerm(), buyPrice, 1000)) {
             int loops = 0;
-            amtTraded = 0;
-            while (!offerUpdated && amtTraded < 14) {
+            GrandExchange.Box buyingBox = findPrimaryIngredientBuyingBox();
+            boolean lock = true;
+            script.log("Thread: " + Thread.currentThread().getId() + " entering spinlocking in GEBuy");
+            while (lock) {
                 loops++;
                 Thread.sleep(1000);
-                script.log("Thread: " + Thread.currentThread().getId() + " is spinlocking in GEBuy, loops: " + loops);
-                if (loops > 90) {
+                if (loops > 60) {
                     loops = 0;
-                    increaseOffer();
+                    if(increaseOffer(buyingBox)){
+                        script.log("increase offer successful");
+                    } else{
+                        script.warn("increase offer unsuccessful");
+                    }
+
                 }
+                lock = doContinueLocking(buyingBox);
             }
             script.log("Thread: " + Thread.currentThread().getId() + " has released GEBuy spinlock");
         }
     }
 
-    private int findInstantBuyPrice(boolean doConversionMarginCheck) throws InterruptedException {
+    private boolean doContinueLocking(GrandExchange.Box buyingBox){
+        GrandExchange ge = script.getGrandExchange();
+        double percentComplete = ge.getAmountTraded(buyingBox) / ge.getAmountToTransfer(buyingBox);
+        return percentComplete < 0.25;
+    }
+
+    private boolean increaseOffer(GrandExchange.Box buyingBox) throws InterruptedException {
+        int prevOffer = script.grandExchange.getItemPrice(buyingBox);
+        script.log("increasing offer to " + (prevOffer + 25));
+        if(operations.abortOffersWithItem(recipe.getPrimaryItemName())){
+            MethodProvider.sleep(1000);
+            if(operations.collect()){
+                return operations.buyUpToLimit(recipe.getPrimaryItemID(), recipe.getGeSearchTerm(), prevOffer + 25, 1000);
+            }
+        }
+        return false;
+    }
+
+    private GrandExchange.Box findPrimaryIngredientBuyingBox(){
+        for(GrandExchange.Box box: GrandExchange.Box.values()){
+            if(operations.getItemId(box) == recipe.getPrimaryItemID()){
+                return box;
+            }
+        }
+        return null;
+    }
+
+    private int findBuyPrice(boolean doConversionMarginCheck) throws InterruptedException {
         int[] margin;
         if(margins.getSecondsSinceLastUpdate(recipe) > 900 || doConversionMarginCheck){
             script.log("preforming price check on conversion for: " + recipe.name());
             margin = margins.findSpecificConversionMargin(recipe);
             if(margin[1] - margin[0] < Margins.SWITCH_RECIPE_IF_LOWER){
-                UnfPotionRecipes nextRecipe = margins.findAllConversionMargins();
+                ItemCombinationRecipes nextRecipe = margins.findAllConversionMargins();
                 margins.setCurrentRecipe(nextRecipe);
                 recipe = margins.getCurrentRecipe();
                 margin = margins.getMarginOfCurrentRecipe();
@@ -155,17 +163,6 @@ public class GESpinLockBuyNode implements ExecutableNode, GrandExchangeObserver 
         return adjNodes;
     }
 
-    private boolean increaseOffer() throws InterruptedException {
-        int prevOffer = script.grandExchange.getItemPrice(box);
-        script.log("increasing offer to " + (prevOffer + 25));
-        if(operations.abortOffersWithItem(recipe.getPrimaryItemName())){
-            MethodProvider.sleep(1000);
-            if(operations.collect()){
-                return operations.buyUpToLimit(recipe.getPrimaryItemID(), recipe.getGeSearchTerm(), prevOffer + 25, 1000);
-            }
-        }
-        return false;
-    }
 
 
     private boolean isBuyItemPending(){
@@ -195,9 +192,13 @@ public class GESpinLockBuyNode implements ExecutableNode, GrandExchangeObserver 
                 }
             }.sleep();
             if(success){
-                if(bank.getAmount(995) >= 0){
-                    return bank.withdraw(995, Bank.WITHDRAW_ALL) && bank.close();
-                }
+                int bankedCoins = (int) bank.getAmount(995);
+                if(bankedCoins > 10000){
+                    int withdrawAmt = (bankedCoins - 10000)/ 1000 * 1000;
+                    if(withdrawAmt == 0){
+                        return true;
+                    } else return bank.withdraw(995, withdrawAmt) && bank.close();
+                } else return bankedCoins < 10000 && script.getInventory().contains(995);
             }
         }
         return false;

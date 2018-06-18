@@ -129,7 +129,6 @@ public class GrandExchangeOperations extends GrandExchange{
     }
 
     private boolean openGE() {
-
         if(!isOpen()){
             NPC grandExchangeClerk = npcs.closest("Grand Exchange Clerk");
             if(grandExchangeClerk != null){

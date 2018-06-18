@@ -5,8 +5,8 @@ import Nodes.BankingNodes.DepositNode;
 import Nodes.CreationNodes.HoverBankerCreation;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
+import Util.ItemCombinationRecipes;
 import Util.Margins;
-import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.script.Script;
@@ -32,19 +32,14 @@ public class StartingNode implements ExecutableNode {
     public int executeNode() throws InterruptedException {
         Inventory inv = script.getInventory();
         if(script.getBank().open()){
-            UnfPotionRecipes todo = whichRecipeToDo();
-            if(script.getBank().close()){
-                if(todo != null){ //means that there are already herbs to do
-                    margins.setCurrentRecipe(todo);
-                } else {
+            ItemCombinationRecipes todo = whichRecipeToDo();
+            if(todo != null) //means that there are already herbs to do
+                margins.setCurrentRecipe(todo);
+            else if(script.getBank().close())
                     margins.setCurrentRecipe(margins.findAllConversionMargins());
-                }
-            } else {
-                throw new UnsupportedOperationException("bank didn't close???");
-            }
-        }
 
-        if(invContainsPrimaryComponent() && inv.contains("Vial of water")){
+        }
+        if(invContainsPrimaryComponent() && inv.contains(margins.getCurrentRecipe().getSecondaryItemName())){
             jumpTarget = HoverBankerCreation.class;
         } else if(inv.isEmpty()){
             jumpTarget = DecideRestockNode.class;
@@ -56,19 +51,19 @@ public class StartingNode implements ExecutableNode {
 
     private boolean invContainsPrimaryComponent(){
         Inventory inv = script.getInventory();
-        return inv.contains(UnfPotionRecipes.AVANTOE.getPrimaryItemName())
-                || inv.contains(UnfPotionRecipes.TOADFLAX.getPrimaryItemName())
-                || inv.contains(UnfPotionRecipes.RANARR.getPrimaryItemName())
-                || inv.contains(UnfPotionRecipes.IRIT.getPrimaryItemName())
-                || inv.contains(UnfPotionRecipes.KWUARM.getPrimaryItemName());
+        return inv.contains(ItemCombinationRecipes.AVANTOE.getPrimaryItemName())
+                || inv.contains(ItemCombinationRecipes.TOADFLAX.getPrimaryItemName())
+                || inv.contains(ItemCombinationRecipes.RANARR.getPrimaryItemName())
+                || inv.contains(ItemCombinationRecipes.IRIT.getPrimaryItemName())
+                || inv.contains(ItemCombinationRecipes.KWUARM.getPrimaryItemName());
     }
 
-    private UnfPotionRecipes whichRecipeToDo(){
+    private ItemCombinationRecipes whichRecipeToDo(){
         Bank bank = script.getBank();
         int highestIngredientAmt = 14; //only if highest is over 14 do I care
-        UnfPotionRecipes todo = null;
-        for(UnfPotionRecipes recipe: UnfPotionRecipes.values()){
-            if(recipe == UnfPotionRecipes.CLAY)
+        ItemCombinationRecipes todo = null;
+        for(ItemCombinationRecipes recipe: ItemCombinationRecipes.values()){
+            if(recipe == ItemCombinationRecipes.CLAY)
                 continue;
             int amt = (int) bank.getAmount(recipe.getPrimaryItemName());
             if(amt > highestIngredientAmt){
