@@ -1,50 +1,35 @@
 package Util;
 
 import Util.GrandExchangeUtil.GrandExchangeOperations;
+import org.osbot.rs07.api.ui.Skill;
 import org.osbot.rs07.script.Script;
 
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
+/*
+Singleton class that stores sell/buy prices of ingredients and their final products
+*/
 
 public class Margins {
     private static Margins singleton;
+    private boolean doInitialMarginCheck = true;
     private Script script;
-    private HashMap<ItemCombinationRecipes, int[]> conversionMargins;
-    private HashMap<ItemCombinationRecipes, Instant> lastUpdateTimestamps;
-    private HashMap<ItemCombinationRecipes, int[]> primaryIngredientMargins;
-    private HashMap<ItemCombinationRecipes, int[]> finishedProductMargins;
+    private HashMap<CombinationRecipes, MarginPrices> priceData;
     private GrandExchangeOperations operations;
-    private ItemCombinationRecipes currentRecipe;
+    private CombinationRecipes currentRecipe;
 
-    public static final int SWITCH_RECIPE_IF_LOWER = 150;
+    public static int switchRecipeIfLower = 100;
+    public static final int[] DEFAULT_MARGIN = {100000, 100000};
 
     private Margins(Script script){
         this.script = script;
         operations = GrandExchangeOperations.getInstance(script.bot);
-        conversionMargins = new HashMap<>();
-        conversionMargins.put(ItemCombinationRecipes.AVANTOE, new int[]{100000, -100000});
-        conversionMargins.put(ItemCombinationRecipes.TOADFLAX, new int[]{100000, -100000});
-        conversionMargins.put(ItemCombinationRecipes.IRIT, new int[]{100000, -100000});
-        conversionMargins.put(ItemCombinationRecipes.KWUARM, new int[]{100000, -100000});
-
-        lastUpdateTimestamps = new HashMap<>();
-        lastUpdateTimestamps.put(ItemCombinationRecipes.AVANTOE, null);
-        lastUpdateTimestamps.put(ItemCombinationRecipes.TOADFLAX, null);
-        lastUpdateTimestamps.put(ItemCombinationRecipes.IRIT, null);
-        lastUpdateTimestamps.put(ItemCombinationRecipes.KWUARM, null);
-
-        primaryIngredientMargins = new HashMap<>();
-        primaryIngredientMargins.put(ItemCombinationRecipes.AVANTOE, new int[]{100000, -100000});
-        primaryIngredientMargins.put(ItemCombinationRecipes.TOADFLAX, new int[]{100000, -100000});
-        primaryIngredientMargins.put(ItemCombinationRecipes.IRIT, new int[]{100000, -100000});
-        primaryIngredientMargins.put(ItemCombinationRecipes.KWUARM, new int[]{100000, -100000});
-
-        finishedProductMargins = new HashMap<>();
-        finishedProductMargins.put(ItemCombinationRecipes.AVANTOE, new int[]{100000, -100000});
-        finishedProductMargins.put(ItemCombinationRecipes.TOADFLAX, new int[]{100000, -100000});
-        finishedProductMargins.put(ItemCombinationRecipes.IRIT, new int[]{100000, -100000});
-        finishedProductMargins.put(ItemCombinationRecipes.KWUARM, new int[]{100000, -100000});
+        priceData = new HashMap<>();
+        priceData.put(CombinationRecipes.AVANTOE, new MarginPrices());
+        priceData.put(CombinationRecipes.TOADFLAX, new MarginPrices());
+        priceData.put(CombinationRecipes.IRIT, new MarginPrices());
+        priceData.put(CombinationRecipes.KWUARM, new MarginPrices());
+        priceData.put(CombinationRecipes.HARRALANDER, new MarginPrices());
     }
 
     public static Margins getInstance(Script script){
@@ -54,113 +39,174 @@ public class Margins {
         return singleton;
     }
 
-    public int[] findFinishedProductMargin(ItemCombinationRecipes product) throws InterruptedException {
-        int[] productMargin = operations.priceCheckItemMargin(product.getFinishedItemID(), product.getGeSearchTerm());
-        finishedProductMargins.put(product, productMargin);
-        return productMargin;
+    public CombinationRecipes findAndSetNextRecipe() throws InterruptedException {
+        int profitMargin = 0;
+        if(currentRecipe != null)
+            profitMargin = priceData.get(currentRecipe).getConversionProfit();
+        else
+            doInitialMarginCheck = true;
+        if(doInitialMarginCheck || profitMargin < switchRecipeIfLower){
+            doInitialMarginCheck = false;
+            currentRecipe = findAllConversionMargins(); //a new recipe is found here if the currentRecipe is poor
+        } else if(priceData.get(currentRecipe).getSecondsSinceLastUpdate() > 600){
+            profitMargin = priceData.get(currentRecipe).getConversionProfit();
+            if(profitMargin < switchRecipeIfLower)
+                currentRecipe = findAllConversionMargins();
+        }
+        if(currentRecipe == null){
+            script.stop(false);
+            throw new NullPointerException("findAndSetNextRecipe(): nextRecipe is null");
+        }
+        return currentRecipe;
     }
 
-    public int[] getFinishedProductMargin(ItemCombinationRecipes product){
-        return finishedProductMargins.get(product);
+    public static void markSingletonAsNull(){
+        singleton = null;
     }
 
-    public int[] findPrimaryIngredientMargin(ItemCombinationRecipes primary) throws InterruptedException {
-        int[] primaryMargin = operations.priceCheckItemMargin(primary.getPrimaryItemID(), primary.getGeSearchTerm());
-        primaryIngredientMargins.put(primary, primaryMargin);
-        return primaryMargin;
+    public int[] findSpecificConversionMargin(CombinationRecipes recipe) throws InterruptedException {
+        script.log("finding conversion margin for: " + recipe.name());
+        int[] primaryMargin = findPrimaryIngredientMargin(recipe);
+
+        if(marginNotDefault(primaryMargin)){
+            int[] productMargin = findFinishedProductMargin(recipe);
+            if(marginNotDefault(productMargin)){
+                updatePrimaryMargin(recipe, primaryMargin);
+                updateProductMargin(recipe, productMargin);
+                return priceData.get(recipe).getConversionMargin();
+            }
+        }
+        script.warn("failed to find margin for " + recipe + " invalidating for this session");
+        priceData.remove(recipe);
+        return DEFAULT_MARGIN;
     }
 
-    public int[] getCachedPrimaryIngredientMargin(ItemCombinationRecipes primary) {
-        return primaryIngredientMargins.get(primary);
-    }
-
-    public int[] findSpecificConversionMargin(ItemCombinationRecipes itemCombinationRecipes) throws InterruptedException {
-        script.log("finding conversion margin for: " + itemCombinationRecipes.name());
-        int[] primaryMargin = operations.priceCheckItemMargin(itemCombinationRecipes.getPrimaryItemID(), itemCombinationRecipes.getGeSearchTerm());
-        int[] finishedProductMargin = operations.priceCheckItemMargin(itemCombinationRecipes.getFinishedItemID(), itemCombinationRecipes.getGeSearchTerm());
-        int[] conversionMargin = {primaryMargin[1], finishedProductMargin[0]};
-
-        primaryIngredientMargins.replace(itemCombinationRecipes, primaryMargin);
-        conversionMargins.replace(itemCombinationRecipes, conversionMargin);
-        lastUpdateTimestamps.replace(itemCombinationRecipes, Instant.now());
-        script.log(itemCombinationRecipes.name() + " unf potion conversion has margin: " + Arrays.toString(conversionMargin) + " delta: " + (conversionMargin[1] - conversionMargin[0]));
-        return conversionMargin;
-    }
-
-    public ItemCombinationRecipes findAllConversionMargins() throws InterruptedException {
+    public CombinationRecipes findAllConversionMargins() throws InterruptedException {
+        int secondBestDeltaMargin = -1;
         int bestDeltaMargin = 0;
-        ItemCombinationRecipes best = null;
-        for(ItemCombinationRecipes conv : conversionMargins.keySet()){
-            int[] conversionMargin = findSpecificConversionMargin(conv);
-            int marginDelta = conversionMargin[1] - conversionMargin[0];
-            if(marginDelta > bestDeltaMargin){
+        int herbLvl = script.skills.getDynamic(Skill.HERBLORE);
+        CombinationRecipes best = null;
+        for(CombinationRecipes conv : priceData.keySet()){
+            if(herbLvl < conv.getReqLvl()){
+                script.log("do not have req lvl for " + conv + " conversion, skipping.");
+                continue;
+            }
+            MarginPrices prices = priceData.get(conv);
+            if(prices.getSecondsSinceLastUpdate() > 180){
+                findSpecificConversionMargin(conv);
+            } else {
+                script.log("last price check for " + conv.getPrimaryItemName() + " conversion was less than 2 mins ago. Using cached margin");
+                prices.getConversionMargin();
+            }
+            int marginDelta = prices.getConversionProfit();
+            if(marginDelta > bestDeltaMargin && marginDelta <= 1000){ //if over 1000 something likely went wrong with pricecheck
+                secondBestDeltaMargin = bestDeltaMargin;
                 bestDeltaMargin = marginDelta;
                 best = conv;
+                if(marginDelta >= 200){
+                    script.log(conv + " has at least a 200 margin, settling with that");
+                    break;
+                }
+            } else if(marginDelta > secondBestDeltaMargin){
+                secondBestDeltaMargin = marginDelta;
             }
         }
         if(best != null){
-            script.log(best.name() + " has best delta margin at: " + bestDeltaMargin + " with margin: " + Arrays.toString(conversionMargins.get(best)));
+            if(bestDeltaMargin <= 50){
+                script.log("all margins are 50 or less, stopping");
+                script.stop(true);
+            } else {
+                script.log(best.name() + " has best delta margin at: " + bestDeltaMargin + " with margin: " + Arrays.toString(priceData.get(best).getConversionMargin()));
+                switchRecipeIfLower = 100 > secondBestDeltaMargin ? 100 : secondBestDeltaMargin;
+                script.log("switching recipes if this recipe margin is lower than " + switchRecipeIfLower);
+            }
         } else {
-            script.log("price check all operation failed, setting recipe to default(IRIT)");
-            return ItemCombinationRecipes.IRIT;
+            script.log("price check all operation failed: best is null!");
+            script.stop(false);
         }
         return best;
     }
 
-    public void updateConversionMarginEntry(ItemCombinationRecipes recipe, int[] newMargin){
-        conversionMargins.put(recipe, newMargin);
-        lastUpdateTimestamps.put(recipe, Instant.now());
-    }
+    public int[] findFinishedProductMargin(CombinationRecipes product) throws InterruptedException {
+        int[] productMargin = operations.priceCheckItemMargin(product.getFinishedItemID(), product.getGeSearchTerm());
+        int attempts = 0;
+        while((productMargin[0] == DEFAULT_MARGIN[0] || productMargin[1] == DEFAULT_MARGIN[1]) && attempts < 3){
+            attempts++;
 
-    public void updatePrimaryIngredientBuyPrice(ItemCombinationRecipes recipe, int newPrice){
-        int[] oldMargin = conversionMargins.get(recipe);
-        conversionMargins.put(recipe, new int[]{newPrice, oldMargin[1]});
-    }
-
-    public void updateFinishedProductSellPrice(ItemCombinationRecipes recipe, int newPrice){
-        int[] oldMargin = conversionMargins.get(recipe);
-        conversionMargins.put(recipe, new int[]{oldMargin[0], newPrice});
-    }
-
-    public int getSecondsSinceLastUpdate(ItemCombinationRecipes itemCombinationRecipes) {
-        Instant lastUpdate = lastUpdateTimestamps.get(itemCombinationRecipes);
-        if(lastUpdate != null){
-            int secondsAgo = (int) (Instant.now().getEpochSecond() - lastUpdate.getEpochSecond());
-            script.log("last update was: " + secondsAgo + " ago");
-            return secondsAgo;
+            operations.abortOffersWithItem(product.getFinishedItemName());
+            productMargin = operations.priceCheckItemMargin(product.getFinishedItemID(), product.getGeSearchTerm());
         }
-        script.log("there was no last update");
-        return Integer.MAX_VALUE;
-    }
-
-    public ItemCombinationRecipes getBestMarginRecipe(){
-        return conversionMargins.entrySet().stream().max((a, b) -> {
-            int[] marginA = a.getValue();
-            int[] marginB = b.getValue();
-            int deltaA = marginA[1] - marginA[0];
-            int deltaB = marginB[1] - marginB[0];
-            return deltaA > deltaB ? deltaA : deltaB;
-        }).get().getKey();
-    }
-
-    public int[] getMargin(ItemCombinationRecipes itemCombinationRecipes) {
-        int[] margin = conversionMargins.get(itemCombinationRecipes);
-        if(margin != null){
-            return margin;
+        if(attempts >= 3){
+            operations.collect();
+            return DEFAULT_MARGIN;
         }
-        return new int[2];
+        MarginPrices prices = priceData.get(product);
+        prices.setProductInstantBuy(productMargin[1]);
+        prices.setProductInstantSell(productMargin[0]);
+        return productMargin;
     }
 
-    public int[] getMarginOfCurrentRecipe(){
-        return getMargin(currentRecipe);
+    public int[] findPrimaryIngredientMargin(CombinationRecipes primary) throws InterruptedException {
+        int[] primaryMargin = operations.priceCheckItemMargin(primary.getPrimaryItemID(), primary.getGeSearchTerm());
+        int attempts = 0;
+        while((primaryMargin[0] == DEFAULT_MARGIN[0] || primaryMargin[1] == DEFAULT_MARGIN[1]) && attempts < 3){
+            attempts++;
+            operations.abortOffersWithItem(primary.getPrimaryItemName());
+            primaryMargin = operations.priceCheckItemMargin(primary.getPrimaryItemID(), primary.getGeSearchTerm());
+        }
+        if(attempts >= 3){
+            operations.collect();
+            return DEFAULT_MARGIN;
+        }
+        updatePrimaryMargin(primary, primaryMargin);
+        return primaryMargin;
     }
 
-    public ItemCombinationRecipes getCurrentRecipe() {
+    public int[] getCachedConversionMargin(CombinationRecipes recipe) {
+        if(priceData.containsKey(recipe))
+            return priceData.get(recipe).getConversionMargin();
+        return DEFAULT_MARGIN;
+    }
+
+    public int[] getCachedFinishedProductMargin(CombinationRecipes product){
+        MarginPrices prices = priceData.get(product);
+        return new int[]{prices.getProductInstantSell(), prices.getProductInstantBuy()};
+    }
+
+    public int[] getCachedPrimaryIngredientMargin(CombinationRecipes primary) {
+        MarginPrices prices = priceData.get(primary);
+        return new int[]{prices.getPrimaryInstantSell(), prices.getPrimaryInstantBuy()};
+    }
+
+    public CombinationRecipes getCurrentRecipe() {
         return currentRecipe;
     }
 
-    public void setCurrentRecipe(ItemCombinationRecipes currentRecipe) {
-        script.log("recipe set to: " + currentRecipe.name());
+    public void setCurrentRecipe(CombinationRecipes currentRecipe) {
+        if(currentRecipe != null){
+            script.log("recipe set to: " + currentRecipe.name());
+        } else {
+            script.log("passed argument is null");
+        }
+
         this.currentRecipe = currentRecipe;
+    }
+
+    private boolean marginNotDefault(int[] margin){
+        return margin[0] != DEFAULT_MARGIN[0] && margin[1] != DEFAULT_MARGIN[1];
+    }
+
+    private void updatePrimaryMargin(CombinationRecipes recipe, int[] margin){
+        MarginPrices prices = priceData.get(recipe);
+        prices.setPrimaryInstantBuy(margin[1]);
+        prices.setPrimaryInstantSell(margin[0]);
+        prices.setLastUpdate();
+    }
+
+    private void updateProductMargin(CombinationRecipes recipe, int[] margin){
+        MarginPrices prices = priceData.get(recipe);
+        prices.setProductInstantBuy(margin[1]);
+        prices.setProductInstantSell(margin[0]);
+        prices.setLastUpdate();
     }
 }

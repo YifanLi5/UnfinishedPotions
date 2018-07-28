@@ -1,16 +1,16 @@
-package Nodes.BankingNodes.HerbWithdraw;
+package Nodes.BankingNodes.PrimaryWithdraw;
 
 import Nodes.BankingNodes.DepositNode;
 import Nodes.BankingNodes.OptionalInvFixNode;
-import Nodes.BankingNodes.VialWithdraw.Withdraw10Secondary;
-import Nodes.BankingNodes.VialWithdraw.Withdraw14Secondary;
-import Nodes.BankingNodes.VialWithdraw.WithdrawXSecondary;
+import Nodes.BankingNodes.SecondaryWithdraw.Withdraw10Secondary;
+import Nodes.BankingNodes.SecondaryWithdraw.Withdraw14Secondary;
+import Nodes.BankingNodes.SecondaryWithdraw.WithdrawXSecondary;
 import Nodes.CreationNodes.AFKCreation;
 import Nodes.CreationNodes.HoverBankerCreation;
 import Nodes.CreationNodes.PrematureStopCreation;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
-import Util.ItemCombinationRecipes;
+import Util.CombinationRecipes;
 import Util.Margins;
 import Util.Statics;
 import org.osbot.rs07.api.Bank;
@@ -21,19 +21,21 @@ import java.util.List;
 
 public abstract class AbstractWithdrawPrimary implements ExecutableNode{
     Script script;
-    ItemCombinationRecipes recipe;
+    CombinationRecipes recipe;
     boolean isJumping = false;
 
+    //edges for if inventory is initially empty (item2 has not been withdrawn)
     private List<Edge> preSecondaryEdges = Arrays.asList(
-            new Edge(Withdraw10Secondary.class, 5),
-            new Edge(Withdraw14Secondary.class, 90),
-            new Edge(WithdrawXSecondary.class, 10));
+            new Edge(Withdraw10Secondary.class, 1),
+            new Edge(Withdraw14Secondary.class, 100),
+            new Edge(WithdrawXSecondary.class, 1));
 
+    //edges for if inventory already has item2.
     private List<Edge> postSecondaryEdges = Arrays.asList(
-            new Edge(OptionalInvFixNode.class, 140),
-            new Edge(AFKCreation.class, 50),
-            new Edge(HoverBankerCreation.class, 35),
-            new Edge(PrematureStopCreation.class, 30));
+            new Edge(OptionalInvFixNode.class, 150),
+            new Edge(AFKCreation.class, 100),
+            new Edge(HoverBankerCreation.class, 50),
+            new Edge(PrematureStopCreation.class, 10));
 
     AbstractWithdrawPrimary(Script script){
         this.script = script;

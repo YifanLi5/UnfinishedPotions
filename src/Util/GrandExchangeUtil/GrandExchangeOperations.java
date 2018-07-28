@@ -1,5 +1,6 @@
 package Util.GrandExchangeUtil;
 
+import Util.Statics;
 import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.GrandExchange;
@@ -11,6 +12,9 @@ import org.osbot.rs07.utility.ConditionalSleep;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Extended GE api to include special methods for buying/selling ingredients and finished products
+ */
 public class GrandExchangeOperations extends GrandExchange{
 
     private static GrandExchangeOperations singleton;
@@ -25,41 +29,78 @@ public class GrandExchangeOperations extends GrandExchange{
         return singleton;
     }
 
+    /**
+     * buys 1 copy of some item at a high price then sells it.
+     * @param itemID the item to price check
+     * @param searchTerm used to search the GE for the item
+     * @return item's instant sell (margin[1]) and instant buy (margin[0])
+     */
     public int[] priceCheckItemMargin(int itemID, String searchTerm) throws InterruptedException {
-        if(!inventory.contains(995)){
-            withdrawCash();
-        }
+        sleep(2000);
         int[] margin = new int[2];
         Box buyPredictedBox = findFreeGEBox();
-        if(openGE()){
-            if(buyItem(itemID, searchTerm, 4000, 1)){
-                if(buyPredictedBox != null){
-                    boolean buyComplete = new ConditionalSleep(5000){
-                        @Override
-                        public boolean condition() throws InterruptedException {
-                            return getStatus(buyPredictedBox) == Status.FINISHED_BUY && getItemId(buyPredictedBox) == itemID;
-                        }
-                    }.sleep();
-                    if(buyComplete){
-                        margin[1] = getAmountSpent(buyPredictedBox);
-                        sleep(1000);
-                        if(collect()){
-                            sleep(1000);
-                            Box sellPredictedBox = findFreeGEBox();
-                            if(sellItem(itemID, 1, 1)){
-                                if(sellPredictedBox != null){
-                                    boolean sellComplete = new ConditionalSleep(5000){
-                                        @Override
-                                        public boolean condition() throws InterruptedException {
-                                            return getStatus(sellPredictedBox) == Status.FINISHED_SALE && getItemId(sellPredictedBox) == itemID;
-                                        }
-                                    }.sleep();
-                                    if(sellComplete){
-                                        sleep(1000);
-                                        margin[0] = getAmountSpent(sellPredictedBox);
-                                        if(collect()){
-                                            log("margin for item: " + itemID + " is " + Arrays.toString(margin));
-                                            return margin;
+        String lastSuccess = "";
+        if(withdrawCash()){
+            lastSuccess = "withdrawCash";
+            if(openGE()){
+                lastSuccess = "openGE";
+                if(buyItem(itemID, searchTerm, random(3500, 5000), 1)){
+                    lastSuccess = "buyItem";
+                    if(buyPredictedBox != null){
+                        lastSuccess = "buyPredictedBox != null";
+                        boolean buyComplete = new ConditionalSleep(5000){
+                            @Override
+                            public boolean condition() throws InterruptedException {
+                                return getStatus(buyPredictedBox) == Status.FINISHED_BUY && getItemId(buyPredictedBox) == itemID;
+                            }
+                        }.sleep();
+                        if(buyComplete){
+                            lastSuccess = "buyComplete";
+                            margin[1] = getAmountSpent(buyPredictedBox);
+                            boolean buyCollected = new ConditionalSleep(5000){
+                                @Override
+                                public boolean condition() throws InterruptedException {
+                                    return collect();
+                                }
+                            }.sleep();
+                            if(buyCollected){
+                                lastSuccess = "buyCollected";
+                                boolean invHasItem = new ConditionalSleep(5000){
+                                    @Override
+                                    public boolean condition() throws InterruptedException {
+                                        return inventory.contains(itemID);
+                                    }
+                                }.sleep();
+                                Box sellPredictedBox = findFreeGEBox();
+                                if(invHasItem && sellItem(itemID, 1, 1)){
+                                    lastSuccess = "invHasItem && sellItem";
+                                    if(sellPredictedBox != null){
+                                        lastSuccess = "sellPredictedBox != null";
+                                        boolean sellComplete = new ConditionalSleep(5000){
+                                            @Override
+                                            public boolean condition() throws InterruptedException {
+                                                return getStatus(sellPredictedBox) == Status.FINISHED_SALE && getItemId(sellPredictedBox) == itemID;
+                                            }
+                                        }.sleep();
+                                        if(sellComplete){
+                                            lastSuccess = "sellComplete";
+                                            margin[0] = getAmountSpent(sellPredictedBox);
+                                            boolean sellCollected = new ConditionalSleep(5000){
+                                                @Override
+                                                public boolean condition() throws InterruptedException {
+                                                    return collect();
+                                                }
+                                            }.sleep();
+                                            if(sellCollected){
+                                                log("margin for item: " + itemID + " is " + Arrays.toString(margin));
+                                                new ConditionalSleep(3000, 500) {
+                                                    @Override
+                                                    public boolean condition() {
+                                                        return isOpen() && !isOfferScreenOpen(); //interface where user is prompted to buy/sell
+                                                    }
+                                                }.sleep();
+                                                return margin;
+                                            }
                                         }
                                     }
                                 }
@@ -69,31 +110,69 @@ public class GrandExchangeOperations extends GrandExchange{
                 }
             }
         }
-        return new int[]{0,0};
+        log("last success: " + lastSuccess);
+        return new int[]{100000, 100000};
     }
 
-    public boolean sellAll(int itemID, int price) throws InterruptedException {
+    /**
+     * Sell all copies of some item in the inventory regardless of whether it is noted or unnoted
+     * @param itemID item to buy
+     * @param itemName item's name
+     * @param price sell price
+     * @return true is successful. false otherwise
+     */
+    public boolean sellAll(int itemID, String itemName, int price) throws InterruptedException {
         if(openGE()){
             sleep(1000);
-            return sellItem(itemID, price, (int) inventory.getAmount(itemID));
+            return sellItem(itemID, price, (int) inventory.getAmount(itemName));
         }
         return false;
     }
 
+    /**
+     * buy some item with all the gp present in inventory with a max buy quantity of buyQuantityLimit.
+     * ex1) if irits cost 1k and inventory contains 500k and buyQuantityLimit is set to 1000
+     * only 500 will be bought
+     * ex2) if irits cost 1k and inventory contains 2000k and buyQuantityLimit is set to 1000
+     * only 1000 will be bought
+     * @param itemID item to buy
+     * @param searchTerm search term for ge
+     * @param price price to buy at
+     * @param buyQuantityLimit max quantity to buy
+     * @return true is successful
+     */
     public boolean buyUpToLimit(int itemID, String searchTerm, int price, int buyQuantityLimit){
         if(inventory.contains(995)){
             if(openGE()){
                 int coins = (int) inventory.getAmount(995);
                 int buyableQuantity = coins/price;
                 int actualBuyQuantity = buyQuantityLimit > buyableQuantity ? buyableQuantity : buyQuantityLimit;
-                return buyItem(itemID, searchTerm, price, actualBuyQuantity);
+                return buyItem(itemID, searchTerm, price, actualBuyQuantity) &&
+                    new ConditionalSleep(3000, 500) {
+                        @Override
+                        public boolean condition() {
+                            return isOpen() && !isOfferScreenOpen(); //interface where user is prompted to buy/sell
+                        }
+                    }.sleep();
             }
         }
         return false;
     }
 
+    /**
+     * Aborts all offers for some item
+     * @param itemName name of item to abort
+     * @return true if successful
+     */
     public boolean abortOffersWithItem(String itemName) throws InterruptedException {
         if(openGE()){
+            boolean collected = new ConditionalSleep(5000){
+                @Override
+                public boolean condition() throws InterruptedException {
+                    return collect();
+                }
+            }.sleep();
+            Statics.longRandomNormalDelay();
             List<RS2Widget> pendingOffers = getWidgets().containingText(465, itemName);
             if(pendingOffers != null && pendingOffers.size() > 0){
                 WidgetDestination offerDestination;
@@ -114,9 +193,18 @@ public class GrandExchangeOperations extends GrandExchange{
                     }
                 }
                 return true;
-            }
+            } else return collected && pendingOffers == null; //if the offer is 100% complete collecting is also the same as aborting
         }
         return false;
+    }
+
+    /**
+     * returns the offer completion percent of a buy or sell offer
+     * @param box box to query
+     * @return percent completion
+     */
+    public double getOfferCompletionPercentage(Box box){
+        return ((double) getAmountTraded(box)) / getAmountToTransfer(box);
     }
 
     private GrandExchange.Box findFreeGEBox(){
@@ -145,6 +233,10 @@ public class GrandExchangeOperations extends GrandExchange{
     }
 
     private boolean withdrawCash() throws InterruptedException {
+        if(inventory.getAmount(995) >= 10000){
+            return true;
+        }
+
         if(bank.open()){
             boolean success = new ConditionalSleep(1000){
                 @Override

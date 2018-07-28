@@ -3,7 +3,7 @@ package Nodes.CreationNodes;
 import Nodes.BankingNodes.DepositNode;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
-import Util.ItemCombinationRecipes;
+import Util.CombinationRecipes;
 import Util.Margins;
 import Util.Statics;
 import Util.SupplierWithCE;
@@ -15,7 +15,7 @@ import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -24,13 +24,13 @@ import static java.awt.event.KeyEvent.VK_SPACE;
 public abstract class AbstractCreationNode implements ExecutableNode {
 
     private static final String USE = "Use";
-    ItemCombinationRecipes recipe;
+    CombinationRecipes recipe;
     int secondaryCount;
     int primaryCount;
 
     Script script;
 
-    private List<Edge> adjNodes = Arrays.asList(new Edge(DepositNode.class, 1));
+    private List<Edge> adjNodes = Collections.singletonList(new Edge(DepositNode.class, 1));
 
     AbstractCreationNode(Script script){
         this.script = script;
@@ -80,7 +80,7 @@ public abstract class AbstractCreationNode implements ExecutableNode {
         boolean success = new ConditionalSleep(2000){
             @Override
             public boolean condition() throws InterruptedException {
-                List<RS2Widget> widgets = new ArrayList<>(script.getWidgets().containingActions(270, "Make"));
+                List<RS2Widget> widgets = new ArrayList<>(script.getWidgets().containingActions(270, "Make", "String"));
                 if(widgets.size() > 0 && widgets.get(0) != null){
                     make[0] = widgets.get(0);
                     return true;

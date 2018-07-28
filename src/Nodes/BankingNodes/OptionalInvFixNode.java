@@ -5,7 +5,7 @@ import Nodes.CreationNodes.HoverBankerCreation;
 import Nodes.CreationNodes.PrematureStopCreation;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
-import Util.ItemCombinationRecipes;
+import Util.CombinationRecipes;
 import Util.Margins;
 import Util.Statics;
 import org.osbot.rs07.api.Bank;
@@ -16,13 +16,13 @@ import java.util.Arrays;
 import java.util.List;
 
 public class OptionalInvFixNode implements ExecutableNode{
-    private ItemCombinationRecipes recipe;
+    private CombinationRecipes recipe;
     private Script script;
 
     private List<Edge> adjNodes = Arrays.asList(
-            new Edge(AFKCreation.class, 50),
-            new Edge(HoverBankerCreation.class, 50),
-            new Edge(PrematureStopCreation.class, 10));
+            new Edge(AFKCreation.class, 75),
+            new Edge(HoverBankerCreation.class, 20),
+            new Edge(PrematureStopCreation.class, 5));
 
     public OptionalInvFixNode(Script script) {
         this.recipe = Margins.getInstance(script).getCurrentRecipe();

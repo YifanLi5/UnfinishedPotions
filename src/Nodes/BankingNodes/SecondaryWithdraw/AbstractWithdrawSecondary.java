@@ -1,16 +1,16 @@
-package Nodes.BankingNodes.VialWithdraw;
+package Nodes.BankingNodes.SecondaryWithdraw;
 
 import Nodes.BankingNodes.DepositNode;
-import Nodes.BankingNodes.HerbWithdraw.Withdraw10Primary;
-import Nodes.BankingNodes.HerbWithdraw.Withdraw14Primary;
-import Nodes.BankingNodes.HerbWithdraw.WithdrawXPrimary;
 import Nodes.BankingNodes.OptionalInvFixNode;
+import Nodes.BankingNodes.PrimaryWithdraw.Withdraw10Primary;
+import Nodes.BankingNodes.PrimaryWithdraw.Withdraw14Primary;
+import Nodes.BankingNodes.PrimaryWithdraw.WithdrawXPrimary;
 import Nodes.CreationNodes.AFKCreation;
 import Nodes.CreationNodes.HoverBankerCreation;
 import Nodes.CreationNodes.PrematureStopCreation;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
-import Util.ItemCombinationRecipes;
+import Util.CombinationRecipes;
 import Util.Margins;
 import Util.Statics;
 import org.osbot.rs07.api.Bank;
@@ -22,19 +22,19 @@ import java.util.List;
 
 public abstract class AbstractWithdrawSecondary implements ExecutableNode{
     Script script;
-    ItemCombinationRecipes recipe;
+    CombinationRecipes recipe;
     boolean isJumping = false;
 
     private List<Edge> prePrimaryNodes = Arrays.asList(
-            new Edge(Withdraw10Primary.class, 5),
-            new Edge(Withdraw14Primary.class, 90),
-            new Edge(WithdrawXPrimary.class, 10));
+            new Edge(Withdraw10Primary.class, 1),
+            new Edge(Withdraw14Primary.class, 100),
+            new Edge(WithdrawXPrimary.class, 1));
 
     private List<Edge> postPrimaryNodes = Arrays.asList(
-            new Edge(OptionalInvFixNode.class, 140),
-            new Edge(AFKCreation.class, 50),
+            new Edge(OptionalInvFixNode.class, 150),
+            new Edge(AFKCreation.class, 100),
             new Edge(HoverBankerCreation.class, 50),
-            new Edge(PrematureStopCreation.class, 30));
+            new Edge(PrematureStopCreation.class, 10));
 
     public AbstractWithdrawSecondary(Script script) {
         this.recipe = Margins.getInstance(script).getCurrentRecipe();
@@ -79,11 +79,11 @@ public abstract class AbstractWithdrawSecondary implements ExecutableNode{
 
     private boolean invContainsPrimaryComponent(){
         Inventory inv = script.getInventory();
-        return inv.contains(ItemCombinationRecipes.AVANTOE.getPrimaryItemName())
-                || inv.contains(ItemCombinationRecipes.TOADFLAX.getPrimaryItemName())
-                || inv.contains(ItemCombinationRecipes.RANARR.getPrimaryItemName())
-                || inv.contains(ItemCombinationRecipes.IRIT.getPrimaryItemName())
-                || inv.contains(ItemCombinationRecipes.KWUARM.getPrimaryItemName());
+        return inv.contains(CombinationRecipes.AVANTOE.getPrimaryItemName())
+                || inv.contains(CombinationRecipes.TOADFLAX.getPrimaryItemName())
+                || inv.contains(CombinationRecipes.RANARR.getPrimaryItemName())
+                || inv.contains(CombinationRecipes.IRIT.getPrimaryItemName())
+                || inv.contains(CombinationRecipes.KWUARM.getPrimaryItemName());
     }
 
     @Override

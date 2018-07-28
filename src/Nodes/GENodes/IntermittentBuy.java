@@ -3,8 +3,8 @@ package Nodes.GENodes;
 import Nodes.BankingNodes.DepositNode;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
+import Util.CombinationRecipes;
 import Util.GrandExchangeUtil.GrandExchangeOperations;
-import Util.ItemCombinationRecipes;
 import Util.Margins;
 import Util.Statics;
 import org.osbot.rs07.api.Bank;
@@ -14,6 +14,7 @@ import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -21,7 +22,7 @@ public class IntermittentBuy implements ExecutableNode{
 
     private Script script;
     private Margins margins;
-    private ItemCombinationRecipes recipe;
+    private CombinationRecipes recipe;
     private GrandExchangeOperations operations;
 
     public IntermittentBuy(Script script) {
@@ -42,79 +43,94 @@ public class IntermittentBuy implements ExecutableNode{
         script.log("executing IntermittentBuy");
         recipe = margins.getCurrentRecipe();
         int[] cachedMargin = margins.getCachedPrimaryIngredientMargin(recipe);
-        if(cachedMargin == null || cachedMargin[0] >= 100000 || cachedMargin[1] <= 0)
-            cachedMargin = margins.findPrimaryIngredientMargin(recipe);
-        script.log("withdraw cash");
-        if(withdrawCash()){
-            if(openGE()){
-
+        if(withdrawCashForMarginCheck()){
+            if(cachedMargin[0] == Margins.DEFAULT_MARGIN[0] || cachedMargin[1] == Margins.DEFAULT_MARGIN[1]){
+                script.log("cachedMargin not properly initialized, finding margin for " + recipe.name());
+                cachedMargin = margins.findPrimaryIngredientMargin(recipe);
             }
+            script.log("margin for IntermittentBuy: " + Arrays.toString(cachedMargin));
+            if(openGE()){
+                GrandExchange.Box buyingBox = findPrimaryIngredientBuyingBox();
+                boolean buyBoxExists = buyingBox != null;
+                int buyPrice = -1;
+                if(buyBoxExists){
+                    buyPrice = operations.getItemPrice(buyingBox);
+                }
 
-            GrandExchange.Box buyingBox = findPrimaryIngredientBuyingBox();
-            script.log("buying box: " + buyingBox);
-            if(buyingBox != null){
-                if(operations.abortOffersWithItem(recipe.getPrimaryItemName())){
-                    Statics.longRandomNormalDelay();
-                    if(operations.collect()){
-                        Statics.shortRandomNormalDelay();
-                        increaseOffer(cachedMargin, buyingBox);
+                GrandExchange.Box sellingBox = findFinishedProductSellingBox();
+                boolean sellBoxExists = sellingBox != null;
+                int amtProductSold = -1;
+                if(sellBoxExists){
+                    amtProductSold = operations.getAmountTraded(sellingBox);
+                }
+
+                if(operations.collect()){
+                    script.log("There was something to collect");
+                } else {
+                    script.log("nothing to collect");
+                }
+
+                int cashStack = (int) script.getInventory().getAmount(995);
+                if(buyBoxExists){
+                    if(operations.abortOffersWithItem(recipe.getPrimaryItemName())){
+                        Statics.longRandomNormalDelay();
+                        if(operations.collect()){
+                            Statics.shortRandomNormalDelay();
+                            increaseOffer(cachedMargin, buyPrice);
+                        }
                     }
                 }
-            }
-            else{
-                GrandExchange.Box sellingBox = findFinishedProductSellingBox();
-                script.log("selling box: " + buyingBox);
-                if(sellingBox != null){
-                    int soldFinishedProducts = operations.getAmountTraded(sellingBox);
-                    if(soldFinishedProducts >= 0)
-                        operations.buyUpToLimit(recipe.getPrimaryItemID(), recipe.getGeSearchTerm(), (cachedMargin[0] + cachedMargin[1]) / 2, soldFinishedProducts);
-                } else operations.buyUpToLimit(recipe.getPrimaryItemID(), recipe.getGeSearchTerm(), (cachedMargin[0] + cachedMargin[1]) / 2, 500);
+                else if(sellBoxExists && cashStack >= 100000){
+                    script.log("selling box: " + sellingBox);
+                    int marginMid = (cachedMargin[0] + cachedMargin[1]) / 2;
+                    if(amtProductSold >= 0)
+                        operations.buyUpToLimit(recipe.getPrimaryItemID(), recipe.getGeSearchTerm(), marginMid, amtProductSold);
+                    else operations.buyUpToLimit(recipe.getPrimaryItemID(), recipe.getGeSearchTerm(), marginMid, 500);
+                }
             }
         }
-
-
         return (int) Statics.randomNormalDist(1500, 500);
     }
 
-    private boolean increaseOffer(int[] margin, GrandExchange.Box buyingBox) throws InterruptedException {
-        if(buyingBox != null){
-            int prevOffer = operations.getItemPrice(buyingBox);
-            int incrementFactor = (margin[1] - margin[0]) / 4;
-            int newBuyPrice = prevOffer + incrementFactor;
-            script.log("increasing buy offer to " + newBuyPrice);
-            if(operations.abortOffersWithItem(recipe.getFinishedItemName())){
+    private boolean increaseOffer(int[] margin, int prevBuyPrice) throws InterruptedException {
+        int incrementFactor = (margin[1] - margin[0]) / 4;
+        int newBuyPrice = prevBuyPrice + incrementFactor;
+        script.log("increasing buy offer to " + newBuyPrice);
+        if(operations.abortOffersWithItem(recipe.getFinishedItemName())){
+            MethodProvider.sleep(1000);
+            if(operations.collect()){
                 MethodProvider.sleep(1000);
-                if(operations.collect()){
-                    MethodProvider.sleep(1000);
-                    GrandExchange.Box sellingBox = findFinishedProductSellingBox();
-                    if(sellingBox != null){
-                        int soldFinishedProducts = operations.getAmountTraded(sellingBox);
-                        return operations.buyUpToLimit(recipe.getPrimaryItemID(), recipe.getGeSearchTerm(), newBuyPrice, soldFinishedProducts);
-                    }
-                    return operations.buyUpToLimit(recipe.getPrimaryItemID(), recipe.getGeSearchTerm(), newBuyPrice, 500);
+                GrandExchange.Box sellingBox = findFinishedProductSellingBox();
+                if(sellingBox != null){
+                    int soldFinishedProducts = operations.getAmountTraded(sellingBox);
+                    return operations.buyUpToLimit(recipe.getPrimaryItemID(), recipe.getGeSearchTerm(), newBuyPrice, soldFinishedProducts);
                 }
+                return operations.buyUpToLimit(recipe.getPrimaryItemID(), recipe.getGeSearchTerm(), newBuyPrice, 500);
             }
         }
+
         return false;
     }
 
-    private boolean withdrawCash() throws InterruptedException {
-        Bank bank = script.getBank();
-        if(bank.open()){
-            boolean success = new ConditionalSleep(1000){
-                @Override
-                public boolean condition() throws InterruptedException {
-                    return bank.isOpen();
+    private boolean withdrawCashForMarginCheck() throws InterruptedException {
+        int invCoins = (int) script.getInventory().getAmount(995);
+        if(invCoins >= 5000){
+            return true;
+        } else {
+            Bank bank = script.getBank();
+            if(bank.open()){
+                boolean success = new ConditionalSleep(1000){
+                    @Override
+                    public boolean condition() throws InterruptedException {
+                        return bank.isOpen();
+                    }
+                }.sleep();
+                if(success){
+                    int bankedCoins = (int) bank.getAmount(995);
+                    if(invCoins + bankedCoins >= 5000) {
+                        return bank.withdrawAll(995);
+                    }
                 }
-            }.sleep();
-            if(success){
-                int bankedCoins = (int) bank.getAmount(995);
-                if(bankedCoins > 10000){
-                    int withdrawAmt = (bankedCoins - 10000)/ 1000 * 1000;
-                    if(withdrawAmt == 0){
-                      return true;
-                    } else return bank.withdraw(995, withdrawAmt) && bank.close();
-                } else return bankedCoins < 10000 && script.getInventory().contains(995);
             }
         }
         return false;

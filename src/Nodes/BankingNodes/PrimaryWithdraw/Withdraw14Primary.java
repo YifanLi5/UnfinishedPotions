@@ -1,4 +1,4 @@
-package Nodes.BankingNodes.HerbWithdraw;
+package Nodes.BankingNodes.PrimaryWithdraw;
 
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.script.Script;
@@ -15,6 +15,7 @@ public class Withdraw14Primary extends AbstractWithdrawPrimary {
     boolean withdrawPrimary() {
         if(containsForeignItem()){
             isJumping = true;
+            return false;
         }
         if(script.getInventory().contains(recipe.getSecondaryItemName())){
             if(ThreadLocalRandom.current().nextBoolean()){

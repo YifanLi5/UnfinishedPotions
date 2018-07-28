@@ -2,6 +2,7 @@ package Nodes.CreationNodes;
 
 import Util.Statics;
 import org.osbot.rs07.api.Inventory;
+import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
@@ -12,6 +13,7 @@ public class PrematureStopCreation extends HoverBankerCreation {
 
     @Override
     int waitForPotions() throws InterruptedException {
+        MethodProvider.sleep(Statics.randomNormalDist(3000, 1000));
         Inventory inv = script.getInventory();
         boolean hovered = hoverOverBankOption();
         int maxCreatable = primaryCount > secondaryCount ? secondaryCount : primaryCount;
