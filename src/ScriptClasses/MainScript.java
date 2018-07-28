@@ -2,39 +2,33 @@ package ScriptClasses;
 
 import Nodes.BankingNodes.DecideRestockNode;
 import Nodes.BankingNodes.DepositNode;
-import Nodes.BankingNodes.HerbWithdraw.Withdraw10Primary;
-import Nodes.BankingNodes.HerbWithdraw.Withdraw14Primary;
-import Nodes.BankingNodes.HerbWithdraw.WithdrawXPrimary;
 import Nodes.BankingNodes.OptionalInvFixNode;
-import Nodes.BankingNodes.VialWithdraw.Withdraw10Secondary;
-import Nodes.BankingNodes.VialWithdraw.Withdraw14Secondary;
-import Nodes.BankingNodes.VialWithdraw.WithdrawXSecondary;
+import Nodes.BankingNodes.PrimaryWithdraw.Withdraw10Primary;
+import Nodes.BankingNodes.PrimaryWithdraw.Withdraw14Primary;
+import Nodes.BankingNodes.PrimaryWithdraw.WithdrawXPrimary;
+import Nodes.BankingNodes.SecondaryWithdraw.Withdraw10Secondary;
+import Nodes.BankingNodes.SecondaryWithdraw.Withdraw14Secondary;
+import Nodes.BankingNodes.SecondaryWithdraw.WithdrawXSecondary;
 import Nodes.CreationNodes.AFKCreation;
 import Nodes.CreationNodes.HoverBankerCreation;
 import Nodes.CreationNodes.PrematureStopCreation;
 import Nodes.DebuggingNode;
-import Nodes.GENodes.GESpinLockBuyNode;
-import Nodes.GENodes.GESpinLockSellNode;
-import Nodes.GENodes.IntermittentBuy;
-import Nodes.GENodes.IntermittentSell;
+import Nodes.GENodes.*;
 import Nodes.MarkovChain.MarkovNodeExecutor;
 import Nodes.StartingNode;
+import Util.Margins;
 import Util.Statics;
+import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.script.ScriptManifest;
 
-import java.awt.*;
-
-import static ScriptClasses.MainScript.BUILD_NUM;
 import static ScriptClasses.MainScript.SCRIPT_NAME;
 
-@ScriptManifest(author = "PayPalMeRSGP", name = BUILD_NUM + SCRIPT_NAME, info = "goldfarming unf potion mater", version = 0.1, logo = "")
+@ScriptManifest(author = "PayPalMeRSGP", name = SCRIPT_NAME, info = "item combiner, but mainly used for unf potions", version = 0.5, logo = "")
 public class MainScript extends Script {
-    static final String SCRIPT_NAME = "Intermittent Buy/Sell";
-    static final int BUILD_NUM = 1;
+    static final String SCRIPT_NAME = "Item_Combinator";
+
     private MarkovNodeExecutor executor;
-    private GESpinLockBuyNode buy;
-    private GESpinLockSellNode sell;
 
     private DebuggingNode debug;
     private boolean runDebugNode = false;
@@ -43,21 +37,19 @@ public class MainScript extends Script {
     public void onStart() throws InterruptedException {
         super.onStart();
         Statics.script = this;
-        if(runDebugNode){
-            debug = new DebuggingNode(this);
-        } else {
-            markovChainSetup();
-            camera.movePitch(random(60, 67));
-        }
+        markovChainSetup();
+        camera.movePitch(67);
+        new ScriptPaint(this);
     }
 
     @Override
     public int onLoop() throws InterruptedException {
-        if(runDebugNode){
-            return debug.executeNode();
-        }
-        else {
+        try {
             return executor.executeThenTraverse();
+        } catch (NullPointerException ex){
+            log(ex.getMessage());
+            MethodProvider.sleep(1000);
+            return 1000;
         }
     }
 
@@ -79,32 +71,20 @@ public class MainScript extends Script {
         HoverBankerCreation hover = new HoverBankerCreation(this);
         PrematureStopCreation premature = new PrematureStopCreation(this);
 
-        buy = new GESpinLockBuyNode(this);
-        sell = new GESpinLockSellNode(this);
+        AbortRelevantOffers abort = new AbortRelevantOffers(this);
+        GESpinLockBuyNode buy = new GESpinLockBuyNode(this);
+        GESpinLockSellNode sell = new GESpinLockSellNode(this);
         IntermittentBuy randBuy = new IntermittentBuy(this);
         IntermittentSell randSell = new IntermittentSell(this);
+        InitialBuy initialBuy = new InitialBuy(this);
 
-        executor = new MarkovNodeExecutor(start, w10P, w14P, wXP, w10S, w14S, wXS, restock, deposit, fix, afk, hover, premature, buy, sell, randBuy, randSell);
-    }
-
-    @Override
-    public void onPaint(Graphics2D g) {
-        super.onPaint(g);
-        Point pos = getMouse().getPosition();
-        g.drawLine(0, pos.y, 800, pos.y); //horiz line
-        g.drawLine(pos.x, 0, pos.x, 500); //vert line
+        executor = new MarkovNodeExecutor(start, w10P, w14P, wXP, w10S, w14S, wXS, restock, deposit, fix, afk, hover, premature, buy, sell, randBuy, randSell, initialBuy, abort);
     }
 
     @Override
     public void onExit() throws InterruptedException {
         super.onExit();
-        if(runDebugNode){
-            debug.stop();
-        } else{
-            buy.stopThread();
-            sell.stopThread();
-        }
+        Margins.markSingletonAsNull();
+        ScriptPaint.geOpsEnabled = true;
     }
-
-
 }

@@ -3,10 +3,10 @@ package Nodes.CreationNodes;
 import Nodes.BankingNodes.DepositNode;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
+import Util.CombinationRecipes;
 import Util.Margins;
 import Util.Statics;
 import Util.SupplierWithCE;
-import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Inventory;
 import org.osbot.rs07.api.model.Item;
 import org.osbot.rs07.api.ui.RS2Widget;
@@ -15,7 +15,7 @@ import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -24,13 +24,13 @@ import static java.awt.event.KeyEvent.VK_SPACE;
 public abstract class AbstractCreationNode implements ExecutableNode {
 
     private static final String USE = "Use";
-    UnfPotionRecipes recipe;
+    CombinationRecipes recipe;
     int secondaryCount;
     int primaryCount;
 
     Script script;
 
-    private List<Edge> adjNodes = Arrays.asList(new Edge(DepositNode.class, 1));
+    private List<Edge> adjNodes = Collections.singletonList(new Edge(DepositNode.class, 1));
 
     AbstractCreationNode(Script script){
         this.script = script;
@@ -57,7 +57,7 @@ public abstract class AbstractCreationNode implements ExecutableNode {
                     secondaryCount = (int) script.getInventory().getAmount(recipe.getSecondaryItemName());
                     primaryCount = (int) script.getInventory().getAmount(recipe.getPrimaryItemName());
                 }
-                if(executeStep(this::interactMakePotsWidget)){
+                if(executeStep(this::interactCreateWidget)){
                     return waitForPotions();
                 }
             }
@@ -75,12 +75,12 @@ public abstract class AbstractCreationNode implements ExecutableNode {
         return result;
     }
 
-    private boolean interactMakePotsWidget(){
+    private boolean interactCreateWidget(){
         final RS2Widget[] make = new RS2Widget[1];
         boolean success = new ConditionalSleep(2000){
             @Override
             public boolean condition() throws InterruptedException {
-                List<RS2Widget> widgets = new ArrayList<>(script.getWidgets().containingActions(270, "Make"));
+                List<RS2Widget> widgets = new ArrayList<>(script.getWidgets().containingActions(270, "Make", "String"));
                 if(widgets.size() > 0 && widgets.get(0) != null){
                     make[0] = widgets.get(0);
                     return true;
@@ -91,8 +91,8 @@ public abstract class AbstractCreationNode implements ExecutableNode {
         }.sleep();
 
         if(success){
-            boolean useSpace = ThreadLocalRandom.current().nextBoolean();
-            if(useSpace){
+            boolean useHotKey = ThreadLocalRandom.current().nextBoolean();
+            if(useHotKey){
                 script.getKeyboard().pressKey(VK_SPACE);
                 return true;
             }
@@ -108,22 +108,24 @@ public abstract class AbstractCreationNode implements ExecutableNode {
             Item[] items = inv.getItems();
             int slot1 = (int) Statics.randomNormalDist(14,2);
             int slot2;
-            if(items[slot1].getName().equals(recipe.getPrimaryItemName())){
-                slot2 = searchForOtherItemInvSlot(recipe.getSecondaryItemID(), slot1, items);
-            }
-            else if(items[slot1].getName().equals(recipe.getSecondaryItemName())){
-                slot2 = searchForOtherItemInvSlot(recipe.getPrimaryItemID(), slot1, items);
-            }
-            else{
-                script.log("detected foreign recipe");
-                return false;
-            }
+            if(items[slot1] != null){
+                if(items[slot1].getName().equals(recipe.getPrimaryItemName())){
+                    slot2 = searchForOtherItemInvSlot(recipe.getSecondaryItemID(), slot1, items);
+                }
+                else if(items[slot1].getName().equals(recipe.getSecondaryItemName())){
+                    slot2 = searchForOtherItemInvSlot(recipe.getPrimaryItemID(), slot1, items);
+                }
+                else{
+                    script.log("detected foreign recipe");
+                    return false;
+                }
 
-            if(verifySlots(slot1, slot2, items)){
-                if(inv.interact(slot1, USE)){
-                    MethodProvider.sleep(Statics.randomNormalDist(300,100));
-                    if(inv.isItemSelected()){
-                        return inv.interact(slot2, USE);
+                if(verifySlots(slot1, slot2, items)){
+                    if(inv.interact(slot1, USE)){
+                        MethodProvider.sleep(Statics.randomNormalDist(300,100));
+                        if(inv.isItemSelected()){
+                            return inv.interact(slot2, USE);
+                        }
                     }
                 }
             }

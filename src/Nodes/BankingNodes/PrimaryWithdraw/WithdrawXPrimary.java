@@ -1,4 +1,4 @@
-package Nodes.BankingNodes.HerbWithdraw;
+package Nodes.BankingNodes.PrimaryWithdraw;
 
 import Util.Statics;
 import org.osbot.rs07.api.Bank;
@@ -13,6 +13,10 @@ public class WithdrawXPrimary extends AbstractWithdrawPrimary {
 
     @Override
     boolean withdrawPrimary() throws InterruptedException {
+        if(containsForeignItem()){
+            isJumping = true;
+            return false;
+        }
         Bank bank = script.getBank();
         if(!script.getInventory().isEmptyExcept(recipe.getSecondaryItemName()))
             script.getBank().depositAllExcept(recipe.getSecondaryItemName());

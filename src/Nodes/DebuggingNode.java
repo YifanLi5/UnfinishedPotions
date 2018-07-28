@@ -3,7 +3,9 @@ package Nodes;
 import Nodes.GENodes.IntermittentSell;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
+import Util.CombinationRecipes;
 import Util.GrandExchangeUtil.GrandExchangeObserver;
+import Util.Margins;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.script.Script;
 
@@ -17,6 +19,7 @@ public class DebuggingNode implements GrandExchangeObserver, ExecutableNode {
 
     public DebuggingNode(Script script) {
         this.script = script;
+        Margins.getInstance(script).setCurrentRecipe(CombinationRecipes.AVANTOE);
         sell = new IntermittentSell(script);
     }
 

@@ -3,12 +3,14 @@ package Nodes;
 import Nodes.BankingNodes.DecideRestockNode;
 import Nodes.BankingNodes.DepositNode;
 import Nodes.CreationNodes.HoverBankerCreation;
+import Nodes.GENodes.InitialBuy;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
+import Util.CombinationRecipes;
 import Util.Margins;
-import Util.UnfPotionRecipes;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.Inventory;
+import org.osbot.rs07.api.ui.Skill;
 import org.osbot.rs07.script.Script;
 
 import java.util.List;
@@ -32,47 +34,43 @@ public class StartingNode implements ExecutableNode {
     public int executeNode() throws InterruptedException {
         Inventory inv = script.getInventory();
         if(script.getBank().open()){
-            UnfPotionRecipes todo = whichRecipeToDo();
-            if(script.getBank().close()){
-                if(todo != null){ //means that there are already herbs to do
-                    margins.setCurrentRecipe(todo);
-                } else {
-                    margins.setCurrentRecipe(margins.findAllConversionMargins());
-                }
+            CombinationRecipes recipes = getPreStockedRecipe();
+            margins.setCurrentRecipe(recipes);
+            if(recipes == null){
+                if(invContainsPrimaryComponent())
+                    jumpTarget = DepositNode.class;
+                else
+                    jumpTarget = InitialBuy.class;
+            } else if(invContainsPrimaryComponent() && inv.contains(recipes.getSecondaryItemName())){
+                jumpTarget = HoverBankerCreation.class;
+            } else if(inv.isEmpty()){
+                jumpTarget = DecideRestockNode.class;
             } else {
-                throw new UnsupportedOperationException("bank didn't close???");
+                jumpTarget = DepositNode.class;
             }
         }
 
-        if(invContainsPrimaryComponent() && inv.contains("Vial of water")){
-            jumpTarget = HoverBankerCreation.class;
-        } else if(inv.isEmpty()){
-            jumpTarget = DecideRestockNode.class;
-        } else {
-            jumpTarget = DepositNode.class;
-        }
         return 0;
     }
 
     private boolean invContainsPrimaryComponent(){
         Inventory inv = script.getInventory();
-        return inv.contains(UnfPotionRecipes.AVANTOE.getPrimaryItemName())
-                || inv.contains(UnfPotionRecipes.TOADFLAX.getPrimaryItemName())
-                || inv.contains(UnfPotionRecipes.RANARR.getPrimaryItemName())
-                || inv.contains(UnfPotionRecipes.IRIT.getPrimaryItemName())
-                || inv.contains(UnfPotionRecipes.KWUARM.getPrimaryItemName());
+        return inv.contains(CombinationRecipes.AVANTOE.getPrimaryItemName())
+                || inv.contains(CombinationRecipes.TOADFLAX.getPrimaryItemName())
+                || inv.contains(CombinationRecipes.RANARR.getPrimaryItemName())
+                || inv.contains(CombinationRecipes.IRIT.getPrimaryItemName())
+                || inv.contains(CombinationRecipes.HARRALANDER.getPrimaryItemName());
     }
 
-    private UnfPotionRecipes whichRecipeToDo(){
+    private CombinationRecipes getPreStockedRecipe(){
         Bank bank = script.getBank();
-        int highestIngredientAmt = 14; //only if highest is over 14 do I care
-        UnfPotionRecipes todo = null;
-        for(UnfPotionRecipes recipe: UnfPotionRecipes.values()){
-            if(recipe == UnfPotionRecipes.CLAY)
+        CombinationRecipes todo = null;
+        int herbLvl = script.skills.getDynamic(Skill.HERBLORE);
+        for(CombinationRecipes recipe: CombinationRecipes.values()){
+            if(recipe == CombinationRecipes.CLAY)
                 continue;
-            int amt = (int) bank.getAmount(recipe.getPrimaryItemName());
-            if(amt > highestIngredientAmt){
-                highestIngredientAmt = amt;
+            int amt = (int) (bank.getAmount(recipe.getPrimaryItemName()) + script.getInventory().getAmount(recipe.getPrimaryItemName()));
+            if(amt > 14 && herbLvl >= recipe.getReqLvl()){
                 todo = recipe;
             }
         }

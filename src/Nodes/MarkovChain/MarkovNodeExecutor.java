@@ -66,12 +66,12 @@ public class MarkovNodeExecutor {
             }
             // Algorithm for random percentage branching
             // https://stackoverflow.com/questions/45836397/coding-pattern-for-random-percentage-branching?noredirect=1&lq=1
-            int combinedWeight = edges.stream().mapToInt(Edge::getCurrentExecutionWeight).sum();
+            int combinedWeight = edges.stream().mapToInt(Edge::getExecutionWeight).sum();
             int sum = 0;
             int roll = ThreadLocalRandom.current().nextInt(1, combinedWeight+1);
             ExecutableNode selected = null;
             for(Edge e: edges){
-                sum += e.getCurrentExecutionWeight();
+                sum += e.getExecutionWeight();
                 if(sum >= roll){
                     selected = classTypeMap.get(e.getV());
                     break;

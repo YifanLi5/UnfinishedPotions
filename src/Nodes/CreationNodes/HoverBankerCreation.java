@@ -8,6 +8,7 @@ import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.api.ui.Option;
 import org.osbot.rs07.input.mouse.EntityDestination;
 import org.osbot.rs07.input.mouse.RectangleDestination;
+import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
@@ -20,7 +21,7 @@ public class HoverBankerCreation extends AbstractCreationNode {
 
     @Override
     int waitForPotions() throws InterruptedException {
-
+        MethodProvider.sleep(Statics.randomNormalDist(5000, 2500));
         boolean hovered = hoverOverBankOption();
         Inventory inv = script.getInventory();
         new ConditionalSleep(25000) {

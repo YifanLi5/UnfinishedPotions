@@ -14,7 +14,6 @@ public class AFKCreation extends AbstractCreationNode {
     int waitForPotions() {
         script.getMouse().moveOutsideScreen();
 
-
         Inventory inv = script.getInventory();
         new ConditionalSleep(25000) {
             @Override
@@ -23,6 +22,6 @@ public class AFKCreation extends AbstractCreationNode {
             }
         }.sleep();
 
-        return (int) Statics.randomNormalDist(4000, 750);
+        return (int) Statics.randomNormalDist(8000, 2000);
     }
 }
