@@ -18,7 +18,6 @@ import Nodes.MarkovChain.MarkovNodeExecutor;
 import Nodes.StartingNode;
 import Util.Margins;
 import Util.Statics;
-import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.script.ScriptManifest;
 
@@ -44,13 +43,7 @@ public class MainScript extends Script {
 
     @Override
     public int onLoop() throws InterruptedException {
-        try {
-            return executor.executeThenTraverse();
-        } catch (NullPointerException ex){
-            log(ex.getMessage());
-            MethodProvider.sleep(1000);
-            return 1000;
-        }
+        return executor.executeThenTraverse();
     }
 
     private void markovChainSetup(){
