@@ -9,6 +9,8 @@ public enum CombinationRecipes {
     KWUARM("Kwuarm", "Vial of water", "Kwuarm potion (unf)", "kwu", 263, 227, 105, 55, true),
     HARRALANDER("Harralander", "Vial of water", "Harralander potion (unf)", "harra", 255, 227, 97, 21, true),
 
+    ATTACK_POTION("Guam potion (unf)", "Eye of newt", "Attack potion (3)", "n/a", 91, 221, 121, 3, false),
+
     CLAY("Clay", "Jug of water", "Soft clay", "clay", 434, 1937, 1761, 1, false),
     AIR_BATTLESTAFF("Battlestaff", "Air orb", "Air Battlestaff", "", 1391, 573, 1397, 66, false),
     YEW_LONGBOW("Yew longbow (u)", "Bow string", "Yew longbow", "yew long", 66, 1777, 855, 70, false);

@@ -14,9 +14,7 @@ import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static java.awt.event.KeyEvent.VK_SPACE;
@@ -103,76 +101,105 @@ public abstract class AbstractCreationNode implements ExecutableNode {
 
     private boolean combineComponents() throws InterruptedException {
         Inventory inv = script.getInventory();
-
-        if(inv.contains(recipe.getPrimaryItemName()) && inv.contains(recipe.getSecondaryItemName())){
-            Item[] items = inv.getItems();
-            int slot1 = (int) Statics.randomNormalDist(14,2);
-            int slot2;
-            if(items[slot1] != null){
-                if(items[slot1].getName().equals(recipe.getPrimaryItemName())){
-                    slot2 = searchForOtherItemInvSlot(recipe.getSecondaryItemID(), slot1, items);
-                }
-                else if(items[slot1].getName().equals(recipe.getSecondaryItemName())){
-                    slot2 = searchForOtherItemInvSlot(recipe.getPrimaryItemID(), slot1, items);
-                }
-                else{
-                    script.log("detected foreign recipe");
-                    return false;
-                }
-
-                if(verifySlots(slot1, slot2, items)){
-                    if(inv.interact(slot1, USE)){
-                        MethodProvider.sleep(Statics.randomNormalDist(300,100));
-                        if(inv.isItemSelected()){
-                            return inv.interact(slot2, USE);
-                        }
-                    }
-                }
+        int[] slots = bfsItemCombinationSlots(inv.getItems(),recipe.getPrimaryItemID(), recipe.getSecondaryItemID());
+        //ensure algorithm did not fail. If you any other items in inventory or empty spaces, code may return {-1, -1}
+        //if such happens, use a regular combination interaction
+        if(slots[0] != -1 && slots[1] != -1){
+            if(inv.interact(slots[0], USE)){
+                MethodProvider.sleep(Statics.randomNormalDist(300,100));
+                return inv.isItemSelected() && inv.interact(slots[1], USE);
             }
+        } else {
+            if(inv.interact(USE, recipe.getPrimaryItemID())){
+                MethodProvider.sleep(Statics.randomNormalDist(300,100));
+                return inv.isItemSelected() && inv.interact(USE, recipe.getSecondaryItemID());
 
-            //failsafe, if the above doesnt work
-            if(inv.deselectItem()){
-                if(inv.interact("Use", recipe.getSecondaryItemName())){
-                    return inv.interact("Use", recipe.getPrimaryItemID());
-                }
             }
         }
+
         return false;
     }
 
-    private boolean verifySlots(int slot1, int slot2, Item[] items){
-        if(slot1 >= 0 && slot1 <= 28 && slot2 >= 0 && slot2 <= 28){
-            int slot1ItemID = items[slot1].getId();
-            int slot2ItemID = items[slot2].getId();
-            return (slot1ItemID == recipe.getSecondaryItemID() && slot2ItemID == recipe.getPrimaryItemID())
-                    || (slot1ItemID == recipe.getPrimaryItemID() && slot2ItemID == recipe.getSecondaryItemID());
+    private int[] bfsItemCombinationSlots(Item[] invItems, int item1ID, int item2ID){
+        int startIdx = ThreadLocalRandom.current().nextInt(10, 18);
+        int otherIdx = -1;
+        if(invItems[startIdx] != null){
+            //find what item occupies invItems[startIdx] and bfs with the target being the corresponding item
+            if(invItems[startIdx].getId() == item1ID){
+                otherIdx = bfsTargetItemSlotHelper(invItems, item2ID, startIdx);
+
+            } else if(invItems[startIdx].getId() == item2ID){
+                otherIdx = bfsTargetItemSlotHelper(invItems, item1ID, startIdx);
+
+            }
+            //error check
+            if(otherIdx != -1)
+                return new int[]{startIdx, otherIdx};
         }
-        return false;
+        //Some error occurred. invItems[startIdx] may be null or is an item that is not item1 or item2. Recommend doing normal inventory combine.
+        return new int[]{-1, -1};
     }
 
-    private int searchForOtherItemInvSlot(int idToSearch, int itemSlotInteract, Item[] items){
-        int deferSelectionCount = 0;
-        for(int i = itemSlotInteract; i < items.length; i++){
-            if(items[i] != null && items[i].getId() == idToSearch){
-                boolean selectThisSlot = ThreadLocalRandom.current().nextBoolean();
-                if(selectThisSlot || deferSelectionCount > 3){
-                    return i;
-                }
-                deferSelectionCount++;
-            }
+    private int bfsTargetItemSlotHelper(Item[] invItems, int targetItemID, int startingInvIdx){
+        if(startingInvIdx < 0 || startingInvIdx > 27){
+            throw new UnsupportedOperationException("input needs to in range [0-27].");
         }
-
-        for(int i = itemSlotInteract; i >= 0; i--){
-            if(items[i] != null && items[i].getId() == idToSearch){
-                boolean selectThisSlot = ThreadLocalRandom.current().nextBoolean();
-                if(selectThisSlot || deferSelectionCount > 3){
-                    return i;
-                }
-                deferSelectionCount++;
+        Queue<Integer> bfsQ = new LinkedList<>();
+        boolean[] visitedSlots = new boolean[28];
+        bfsQ.add(startingInvIdx);
+        visitedSlots[startingInvIdx] = true;
+        while(!bfsQ.isEmpty()){
+            int current = bfsQ.poll();
+            if(invItems[current].getId() == targetItemID){
+                return current;
             }
+            List<Integer> successors = getSuccessors(current);
+            successors.forEach(slot -> {
+                if(!visitedSlots[slot]){
+                    visitedSlots[slot] = true;
+                    bfsQ.add(slot);
+                }
+            });
         }
         return -1;
     }
+
+    private List<Integer> getSuccessors(int invSlot) {
+        List<Integer> successors = new ArrayList<>();
+        boolean canUp = false, canRight = false, canDown = false, canLeft = false;
+        if(!(invSlot <= 3)){ //up, cannot search up if invSlot is top 4 slots
+            successors.add(invSlot - 4);
+            canUp = true;
+        }
+        if((invSlot + 1) % 4 != 0){ //right, cannot search right if invSlot is rightmost column
+            successors.add(invSlot + 1);
+            canRight = true;
+        }
+        if(!(invSlot >= 24)){ //down, cannot search down if invSlot is bottom 4 slots
+            successors.add(invSlot + 4);
+            canDown = true;
+        }
+        if(invSlot % 4 != 0){ //left, cannot search left if invSlot is leftmost column
+            successors.add(invSlot - 1);
+            canLeft = true;
+        }
+        //can search in diagonal directions if can search in its composite directions
+        if(canUp && canRight){
+            successors.add(invSlot - 3);
+        }
+        if(canUp && canLeft){
+            successors.add(invSlot - 5);
+        }
+        if(canDown && canRight){
+            successors.add(invSlot + 5);
+        }
+        if(canDown && canLeft){
+            successors.add(invSlot + 3);
+        }
+        Collections.shuffle(successors); //randomize search order at the same search depth.
+        return successors;
+    }
+
 
     @Override
     public List<Edge> getAdjacentNodes() {
