@@ -25,6 +25,7 @@ public class GrandExchangeOperations extends GrandExchange{
         if(singleton == null){
             singleton = new GrandExchangeOperations();
             singleton.exchangeContext(bot);
+            singleton.initializeModule();
         }
         return singleton;
     }
@@ -217,7 +218,7 @@ public class GrandExchangeOperations extends GrandExchange{
     }
 
     private boolean openGE() {
-        if(!isOpen()){
+        if(!isOpen()){ // Osbot API NPEs here!!!
             NPC grandExchangeClerk = npcs.closest("Grand Exchange Clerk");
             if(grandExchangeClerk != null){
                 boolean didInteraction = grandExchangeClerk.interact("Exchange");
@@ -228,6 +229,7 @@ public class GrandExchangeOperations extends GrandExchange{
                     }
                 }.sleep();
             }
+            return false;
         }
         return true;
     }
