@@ -96,12 +96,12 @@ public abstract class AbstractCreationNode extends MethodProvider implements Exe
         //ensure algorithm did not fail. If you any other items in inventory or empty spaces, code may return {-1, -1}
         if(slots[0] != -1 && slots[1] != -1){
             if(inventory.interact(slots[0], USE)){
-                MethodProvider.sleep(Statics.randomNormalDist(300,100));
+                MethodProvider.sleep(randomNormalDist(300,100));
                 return inventory.isItemSelected() && inventory.interact(slots[1], USE);
             }
         } else { //if such happens (return {-1, -1}, use a regular combination interaction
             if(inventory.interact(USE, recipe.getPrimary())) {
-                MethodProvider.sleep(Statics.randomNormalDist(300, 100));
+                MethodProvider.sleep(randomNormalDist(300, 100));
                 return inventory.isItemSelected() && inventory.interact(USE, recipe.getSecondary());
             }
         }

@@ -12,7 +12,6 @@ Singleton class that stores sell/buy prices of ingredients and their final produ
 
 public class Margins extends API {
     private static Margins singleton;
-    private boolean doInitialMarginCheck = true;
     private HashMap<CombinationRecipes, MarginPrices> priceData;
     private GrandExchangeOperations operations;
     private CombinationRecipes currentRecipe;
@@ -47,12 +46,15 @@ public class Margins extends API {
         int profitMargin = 0;
         if(currentRecipe != null)
             profitMargin = priceData.get(currentRecipe).getConversionProfit();
-        else
-            doInitialMarginCheck = true;
-        if(doInitialMarginCheck || profitMargin < switchRecipeIfLower){
-            doInitialMarginCheck = false;
-            currentRecipe = findAllConversionMargins(); //a new recipe is found here if the currentRecipe is poor
-        } else if(priceData.get(currentRecipe).getSecondsSinceLastUpdate() > 600){
+
+        //check if estimated profit margin is good enough. If it isn't, re-find all profit margins and pick the best
+        if(profitMargin < switchRecipeIfLower){
+            currentRecipe = findAllConversionMargins();
+        }
+        //check if the estimate profit margin is potentially outdated (> 10mins). If it is, re-find the profit margin
+        //then check if it is still acceptable. re-find all profit margins if it is not.
+        else if(priceData.get(currentRecipe).getSecondsSinceLastUpdate() > 600){
+            findSpecificConversionMargin(currentRecipe);
             profitMargin = priceData.get(currentRecipe).getConversionProfit();
             if(profitMargin < switchRecipeIfLower)
                 currentRecipe = findAllConversionMargins();
@@ -71,23 +73,30 @@ public class Margins extends API {
         log("finding conversion margin for: " + recipe.name());
         int[] primaryMargin = findPrimaryIngredientMargin(recipe);
 
-        if(marginNotDefault(primaryMargin)){
+        //If a margin check failed it returns an array [0,0]. This method simply checks if the check failed. (Is [0,0])
+        if(marginIsValid(primaryMargin)){
             int[] productMargin = findFinishedProductMargin(recipe);
-            if(marginNotDefault(productMargin)){
+            if(marginIsValid(productMargin)){
+                //update the pricing DB with the newly found information
                 updatePrimaryMargin(recipe, primaryMargin);
                 updateProductMargin(recipe, productMargin);
                 return priceData.get(recipe).getConversionMargin();
             }
         }
+        //A margin check can fail if it times out. This can happen if there is not enough market activity for this recipe.
+        //In this case, don't bother doing this recipe for this session.
         warn("failed to find margin for " + recipe + " invalidating for this session");
         priceData.remove(recipe);
         return DEFAULT_MARGIN;
     }
 
     public CombinationRecipes findAllConversionMargins() throws InterruptedException {
+        //keep track of the best and second best conversion profit margins.
+        //The second best margin is used to set the switchIfLower variable.
+        //If the best margin drops below this variable, it will trigger a recipe price check and potentially a recipe switch.
         int secondBestDeltaMargin = -1;
         int bestDeltaMargin = 0;
-        CombinationRecipes best = null;
+        CombinationRecipes bestRecipe = null;
         for(CombinationRecipes recipe : priceData.keySet()){
             if(skills.getDynamic(recipe.getSkill()) < recipe.getReqLvl()){
                 log("do not have req lvl for " + recipe + " conversion, skipping.");
@@ -101,25 +110,34 @@ public class Margins extends API {
                 prices.getConversionMargin();
             }
             int marginDelta = prices.getConversionProfit();
-            if(marginDelta > bestDeltaMargin && marginDelta <= 1000){ //if over 1000 something likely went wrong with pricecheck
+            //Note: margins over 1000 mean something went wrong with pricecheck. Random market shifts with can result in inaccurate long term pricing.
+            if(marginDelta > bestDeltaMargin && marginDelta <= 1000){
+                //A new best margin found! Update the variables.
                 secondBestDeltaMargin = bestDeltaMargin;
                 bestDeltaMargin = marginDelta;
-                best = recipe;
+                bestRecipe = recipe;
+                //A recipe of 200 is considered great. Greedily accept it.
                 if(marginDelta >= 200){
                     log(recipe + " has at least a 200 margin, settling with that");
                     break;
                 }
-            } else if(marginDelta > secondBestDeltaMargin){
+            }
+
+            else if(marginDelta > secondBestDeltaMargin){
                 secondBestDeltaMargin = marginDelta;
             }
         }
-        log(best + " has best delta margin at: " + bestDeltaMargin + " with margin: " + Arrays.toString(priceData.get(best).getConversionMargin()));
+        log(bestRecipe + " has best delta margin at: " + bestDeltaMargin + " with margin: " + Arrays.toString(priceData.get(bestRecipe).getConversionMargin()));
         switchRecipeIfLower = 100 > secondBestDeltaMargin ? 100 : secondBestDeltaMargin;
         log("switching recipes if this recipe margin is lower than " + switchRecipeIfLower);
-        return best;
+        return bestRecipe;
     }
 
     public int[] findFinishedProductMargin(CombinationRecipes recipe) throws InterruptedException {
+        //find the instant buy/sell margin of a unfinished potion.
+        //This is NOT the recipe's profit margin. The recipe profit margin is found by...
+        //profit margin = unf_potion instant sell - herb instant buy
+        //AKA: profit margin = productMargin[0] - primaryMargin[1]
         int[] productMargin = operations.priceCheckItemMargin(recipe.getProduct());
         int attempts = 0;
         while((productMargin[0] == DEFAULT_MARGIN[0] || productMargin[1] == DEFAULT_MARGIN[1]) && attempts < 3){
@@ -131,9 +149,10 @@ public class Margins extends API {
             operations.collect();
             return DEFAULT_MARGIN;
         }
-        MarginPrices prices = priceData.get(recipe);
+        updateProductMargin(recipe, productMargin);
+       /* MarginPrices prices = priceData.get(recipe);
         prices.setProductInstantBuy(productMargin[1]);
-        prices.setProductInstantSell(productMargin[0]);
+        prices.setProductInstantSell(productMargin[0]);*/
         return productMargin;
     }
 
@@ -183,7 +202,7 @@ public class Margins extends API {
         this.currentRecipe = currentRecipe;
     }
 
-    private boolean marginNotDefault(int[] margin){
+    private boolean marginIsValid(int[] margin){
         return margin[0] != DEFAULT_MARGIN[0] && margin[1] != DEFAULT_MARGIN[1];
     }
 

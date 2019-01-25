@@ -68,7 +68,7 @@ public class MainScript extends Script {
         WaitUntilSell sell = new WaitUntilSell(bot);
         IntermittentBuy randBuy = new IntermittentBuy(bot);
         IntermittentSell randSell = new IntermittentSell(bot);
-        InitialBuyWaitUntil initialBuy = new InitialBuyWaitUntil(bot);
+        InitialBuy initialBuy = new InitialBuy(bot);
 
         executor = new MarkovNodeExecutor(start, w10P, w14P, wXP, w10S, w14S, wXS, restock, deposit, fix, afk, hover, premature, buy, sell, randBuy, randSell, initialBuy, abort);
     }

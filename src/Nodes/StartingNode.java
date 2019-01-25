@@ -3,7 +3,7 @@ package Nodes;
 import Nodes.BankingNodes.DecideRestockNode;
 import Nodes.BankingNodes.DepositNode;
 import Nodes.CreationNodes.HoverBankerCreation;
-import Nodes.GENodes.InitialBuyWaitUntil;
+import Nodes.GENodes.InitialBuy;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
 import Util.CombinationRecipes;
@@ -38,7 +38,7 @@ public class StartingNode extends MethodProvider implements ExecutableNode {
                 if(invContainsPrimaryComponent())
                     jumpTarget = DepositNode.class;
                 else
-                    jumpTarget = InitialBuyWaitUntil.class;
+                    jumpTarget = InitialBuy.class;
             } else if(invContainsPrimaryComponent() && inventory.contains(recipe.getSecondary())){
                 jumpTarget = HoverBankerCreation.class;
             } else if(inventory.isEmpty()){

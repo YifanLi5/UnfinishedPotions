@@ -62,7 +62,7 @@ public class IntermittentSell extends AbstractGENode implements ExecutableNode {
             operations.sellAll(recipe.getProduct(), sellPrice);
 
         }
-        return (int) Statics.randomNormalDist(1500, 500);
+        return randomNormalDist(1500, 500);
     }
 
 

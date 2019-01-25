@@ -17,7 +17,7 @@ public class PrematureStopCreation extends HoverBankerCreation { //extend HoverB
 
     @Override
     int waitForPotions() throws InterruptedException {
-        MethodProvider.sleep(Statics.randomNormalDist(3000, 1000));
+        MethodProvider.sleep(randomNormalDist(3000, 1000));
         boolean hovered = hoverOverBankOption();
         int maxCreatable = primaryCount > secondaryCount ? secondaryCount : primaryCount;
         new ConditionalSleep(25000) {
@@ -30,6 +30,6 @@ public class PrematureStopCreation extends HoverBankerCreation { //extend HoverB
         if(hovered){
             mouse.click(false);
         }
-        return (int) Statics.randomNormalDist(1200, 200);
+        return randomNormalDist(1200, 200);
     }
 }

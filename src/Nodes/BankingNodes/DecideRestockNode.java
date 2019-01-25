@@ -1,13 +1,9 @@
 package Nodes.BankingNodes;
 
-import Nodes.BankingNodes.PrimaryWithdraw.Withdraw10Primary;
-import Nodes.BankingNodes.PrimaryWithdraw.Withdraw14Primary;
-import Nodes.BankingNodes.PrimaryWithdraw.WithdrawXPrimary;
-import Nodes.BankingNodes.SecondaryWithdraw.Withdraw10Secondary;
-import Nodes.BankingNodes.SecondaryWithdraw.Withdraw14Secondary;
-import Nodes.BankingNodes.SecondaryWithdraw.WithdrawXSecondary;
+import Nodes.BankingNodes.Withdraw.WithdrawPrimary;
+import Nodes.BankingNodes.Withdraw.WithdrawSecondary;
 import Nodes.GENodes.AbortRelevantOffers;
-import Nodes.GENodes.InitialBuyWaitUntil;
+import Nodes.GENodes.InitialBuy;
 import Nodes.GENodes.IntermittentBuy;
 import Nodes.GENodes.IntermittentSell;
 import Nodes.MarkovChain.Edge;
@@ -44,12 +40,9 @@ public class DecideRestockNode extends MethodProvider implements ExecutableNode 
         this.recipe = margin.getCurrentRecipe();
 
         adjNodes = Arrays.asList(
-                new Edge(Withdraw10Primary.class, 1),
-                new Edge(Withdraw14Primary.class, 100),
-                new Edge(WithdrawXPrimary.class, 1),
-                new Edge(Withdraw10Secondary.class, 1),
-                new Edge(Withdraw14Secondary.class, 100),
-                new Edge(WithdrawXSecondary.class, 1));
+                new Edge(WithdrawPrimary.class, 75),
+                new Edge(WithdrawSecondary.class, 25)
+        );
 
         unfCountMinThreshold = ThreadLocalRandom.current().nextInt(300, 600);
         log(IntermittentSell.class.getSimpleName() + " runs when there are " + unfCountMinThreshold + " unf potions");
@@ -83,7 +76,7 @@ public class DecideRestockNode extends MethodProvider implements ExecutableNode 
             } else {
                 if(recipe == null && geOpsEnabled){
                     isJumping = true;
-                    jumpTarget = InitialBuyWaitUntil.class;
+                    jumpTarget = InitialBuy.class;
                 }
                 else if(primaryRemaining < 14){
                     if(geOpsEnabled){

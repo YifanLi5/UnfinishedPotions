@@ -1,6 +1,7 @@
 package Nodes.MarkovChain;
 
 import java.util.List;
+import java.util.Random;
 
 public interface ExecutableNode {
     boolean canExecute() throws InterruptedException;
@@ -14,4 +15,8 @@ public interface ExecutableNode {
     Class<? extends ExecutableNode> setJumpTarget();  //if isJumping() specify the class jump target
 
     void logNode();
+
+    default int randomNormalDist(double mean, double stddev){
+        return Math.abs((int) (new Random().nextGaussian() * stddev + mean));
+    }
 }

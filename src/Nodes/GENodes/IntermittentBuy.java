@@ -77,7 +77,7 @@ public class IntermittentBuy extends AbstractGENode implements ExecutableNode  {
                 }
             }
         }
-        return (int) Statics.randomNormalDist(1500, 500);
+        return randomNormalDist(1500, 500);
     }
 
     private boolean increaseOffer(int[] margin, int prevBuyPrice) throws InterruptedException {

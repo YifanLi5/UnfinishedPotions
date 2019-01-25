@@ -40,7 +40,7 @@ public class OptionalInvFixNode extends MethodProvider implements ExecutableNode
     @Override
     public int executeNode() throws InterruptedException {
         if(fixPrimaryCount() && fixSecondaryCount())
-            return (int) Statics.randomNormalDist(600, 200);
+            return randomNormalDist(600, 200);
         isJumping = true;
         return 1000;
     }

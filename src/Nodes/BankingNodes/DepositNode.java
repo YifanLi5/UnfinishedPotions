@@ -48,7 +48,7 @@ public class DepositNode extends MethodProvider implements ExecutableNode {
                     }
                 }.sleep();
                 if(deposited){
-                    return (int) Statics.randomNormalDist(500, 250);
+                    return randomNormalDist(500, 250);
                 }
             }
 

@@ -55,7 +55,7 @@ public abstract class AbstractWithdrawSecondary extends MethodProvider implement
         if(bank.open()){
             if(bank.enableMode(Bank.BankMode.WITHDRAW_ITEM)){
                 if(withdrawSecondary())
-                    return (int) Statics.randomNormalDist(500, 100);
+                    return randomNormalDist(500, 100);
             }
         }
         return 0;

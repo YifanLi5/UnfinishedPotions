@@ -8,9 +8,9 @@ import org.osbot.rs07.Bot;
 import java.util.Collections;
 import java.util.List;
 
-public class InitialBuyWaitUntil extends WaitUntilBuy {
+public class InitialBuy extends WaitUntilBuy {
 
-    public InitialBuyWaitUntil(Bot bot) {
+    public InitialBuy(Bot bot) {
         super(bot);
     }
 

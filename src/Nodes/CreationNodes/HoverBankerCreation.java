@@ -23,7 +23,7 @@ public class HoverBankerCreation extends AbstractCreationNode {
 
     @Override
     int waitForPotions() throws InterruptedException {
-        MethodProvider.sleep(Statics.randomNormalDist(5000, 2500));
+        MethodProvider.sleep(randomNormalDist(5000, 2500));
         boolean hovered = hoverOverBankOption();
         new ConditionalSleep(25000) {
             @Override
@@ -35,7 +35,7 @@ public class HoverBankerCreation extends AbstractCreationNode {
         if(hovered){
             mouse.click(false);
         }
-        return (int) Statics.randomNormalDist(1200, 200);
+        return randomNormalDist(1200, 200);
     }
 
     boolean hoverOverBankOption(){

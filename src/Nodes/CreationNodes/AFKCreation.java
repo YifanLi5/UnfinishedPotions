@@ -22,6 +22,6 @@ public class AFKCreation extends AbstractCreationNode {
             }
         }.sleep();
 
-        return (int) Statics.randomNormalDist(8000, 2000);
+        return randomNormalDist(8000, 2000);
     }
 }

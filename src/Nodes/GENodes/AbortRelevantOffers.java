@@ -75,7 +75,7 @@ public class AbortRelevantOffers extends MethodProvider implements ExecutableNod
             }
         }
 
-        return (int) Statics.randomNormalDist(500, 200);
+        return randomNormalDist(500, 200);
     }
 
     private boolean isBuyItemPending(){
