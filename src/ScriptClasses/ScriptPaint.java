@@ -18,17 +18,16 @@ public class ScriptPaint extends BotMouseListener implements Painter  {
     private static final Color GREEN = new Color(0, 255, 0, 156);
     private static final Color YELLOW = new Color(255, 255, 0, 156);
     private static final String IMG_FOLDER = "resources", HERB = "/herb.png", UNF_POTION = "/unf_potion.png", COINS = "/coins.png", UNKNOWN_MARGIN = "----";
-    private Script script;
     private BufferedImage herb, unfPot, coins;
     private long startTime;
     private Margins margins;
-
+    private final Script script;
     private final static Rectangle TOGGLE_PAINT_VISIBILITY = new Rectangle(0, 291, 47, 47);
     private final static Rectangle TOGGLE_GE_OPS = new Rectangle(0, 244, 94, 47);
     private boolean paintVisible = false;
     public static boolean geOpsEnabled = true;
 
-    public ScriptPaint(Script script){
+    ScriptPaint(Script script){
         this.script = script;
         try{
             herb = ImageIO.read(script.getScriptResourceAsStream(IMG_FOLDER + HERB));
@@ -40,7 +39,7 @@ public class ScriptPaint extends BotMouseListener implements Painter  {
         script.getBot().addPainter(this);
         script.getBot().addMouseListener(this);
         startTime = System.currentTimeMillis();
-        margins = Margins.getInstance(script);
+        margins = Margins.getInstance(script.bot);
     }
 
     @Override
@@ -52,15 +51,15 @@ public class ScriptPaint extends BotMouseListener implements Painter  {
             drawImgs(g);
             drawHerbLabels(g);
             drawRuntime(g);
-            int[] tdfxMargin = margins.getCachedConversionMargin(CombinationRecipes.TOADFLAX);
+            int[] tdfxMargin = margins.getCachedConversionMargin(CombinationRecipes.TOADFLAX_UNF_RECIPE);
             drawToadFlaxStats(tdfxMargin[0], tdfxMargin[1], g);
-            int[] avanMargin = margins.getCachedConversionMargin(CombinationRecipes.AVANTOE);
+            int[] avanMargin = margins.getCachedConversionMargin(CombinationRecipes.AVANTOE_UNF_RECIPE);
             drawAvantoeStats(avanMargin[0], avanMargin[1], g);
-            int[] kwrmMargin = margins.getCachedConversionMargin(CombinationRecipes.KWUARM);
+            int[] kwrmMargin = margins.getCachedConversionMargin(CombinationRecipes.KWUARM_UNF_RECIPE);
             drawKwuarmStats(kwrmMargin[0], kwrmMargin[1], g);
-            int[] iritMargin = margins.getCachedConversionMargin(CombinationRecipes.IRIT);
+            int[] iritMargin = margins.getCachedConversionMargin(CombinationRecipes.IRIT_UNF_RECIPE);
             drawIritStats(iritMargin[0], iritMargin[1], g);
-            int[] harrMargin = margins.getCachedConversionMargin(CombinationRecipes.HARRALANDER);
+            int[] harrMargin = margins.getCachedConversionMargin(CombinationRecipes.HARRALANDER_UNF_RECIPE);
             drawHarralanderStats(harrMargin[0], harrMargin[1], g);
         }
     }

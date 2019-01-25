@@ -3,26 +3,25 @@ package Nodes;
 import Nodes.BankingNodes.DecideRestockNode;
 import Nodes.BankingNodes.DepositNode;
 import Nodes.CreationNodes.HoverBankerCreation;
-import Nodes.GENodes.InitialBuy;
+import Nodes.GENodes.InitialBuyWaitUntil;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
 import Util.CombinationRecipes;
+import Util.ItemData;
 import Util.Margins;
-import org.osbot.rs07.api.Bank;
-import org.osbot.rs07.api.Inventory;
+import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.ui.Skill;
-import org.osbot.rs07.script.Script;
+import org.osbot.rs07.script.MethodProvider;
 
 import java.util.List;
 
-public class StartingNode implements ExecutableNode {
-    private Script script;
+public class StartingNode extends MethodProvider implements ExecutableNode {
     private Class<? extends ExecutableNode> jumpTarget;
     private Margins margins;
 
-    public StartingNode(Script script) {
-        this.script = script;
-        margins = Margins.getInstance(script);
+    public StartingNode(Bot bot) {
+        margins = Margins.getInstance(bot);
+        exchangeContext(bot);
     }
 
     @Override
@@ -32,18 +31,17 @@ public class StartingNode implements ExecutableNode {
 
     @Override
     public int executeNode() throws InterruptedException {
-        Inventory inv = script.getInventory();
-        if(script.getBank().open()){
-            CombinationRecipes recipes = getPreStockedRecipe();
-            margins.setCurrentRecipe(recipes);
-            if(recipes == null){
+        if(bank.open()){
+            CombinationRecipes recipe = findStartingRecipe();
+            margins.setCurrentRecipe(recipe);
+            if(recipe == null){
                 if(invContainsPrimaryComponent())
                     jumpTarget = DepositNode.class;
                 else
-                    jumpTarget = InitialBuy.class;
-            } else if(invContainsPrimaryComponent() && inv.contains(recipes.getSecondaryItemName())){
+                    jumpTarget = InitialBuyWaitUntil.class;
+            } else if(invContainsPrimaryComponent() && inventory.contains(recipe.getSecondary())){
                 jumpTarget = HoverBankerCreation.class;
-            } else if(inv.isEmpty()){
+            } else if(inventory.isEmpty()){
                 jumpTarget = DecideRestockNode.class;
             } else {
                 jumpTarget = DepositNode.class;
@@ -54,23 +52,19 @@ public class StartingNode implements ExecutableNode {
     }
 
     private boolean invContainsPrimaryComponent(){
-        Inventory inv = script.getInventory();
-        return inv.contains(CombinationRecipes.AVANTOE.getPrimaryItemName())
-                || inv.contains(CombinationRecipes.TOADFLAX.getPrimaryItemName())
-                || inv.contains(CombinationRecipes.RANARR.getPrimaryItemName())
-                || inv.contains(CombinationRecipes.IRIT.getPrimaryItemName())
-                || inv.contains(CombinationRecipes.HARRALANDER.getPrimaryItemName());
+        return inventory.contains(ItemData.CLEAN_AVANTOE)
+                || inventory.contains(ItemData.CLEAN_TOADFLAX)
+                || inventory.contains(ItemData.CLEAN_IRIT)
+                || inventory.contains(ItemData.CLEAN_KWUARM)
+                || inventory.contains(ItemData.CLEAN_HARRALANDER);
     }
 
-    private CombinationRecipes getPreStockedRecipe(){
-        Bank bank = script.getBank();
+    private CombinationRecipes findStartingRecipe(){
         CombinationRecipes todo = null;
-        int herbLvl = script.skills.getDynamic(Skill.HERBLORE);
+        int herbLvl = skills.getDynamic(Skill.HERBLORE);
         for(CombinationRecipes recipe: CombinationRecipes.values()){
-            if(recipe == CombinationRecipes.CLAY)
-                continue;
-            int amt = (int) (bank.getAmount(recipe.getPrimaryItemName()) + script.getInventory().getAmount(recipe.getPrimaryItemName()));
-            if(amt > 14 && herbLvl >= recipe.getReqLvl()){
+            int amountCreatable = (int) (bank.getAmount(recipe.getPrimary()) + inventory.getAmount(recipe.getPrimary()));
+            if(amountCreatable > 14 && herbLvl >= recipe.getReqLvl()){
                 todo = recipe;
             }
         }

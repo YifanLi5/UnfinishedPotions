@@ -1,54 +1,52 @@
 package Nodes.CreationNodes;
 
 import Util.Statics;
-import org.osbot.rs07.api.Inventory;
-import org.osbot.rs07.api.Menu;
-import org.osbot.rs07.api.Mouse;
+import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.api.ui.Option;
 import org.osbot.rs07.input.mouse.EntityDestination;
 import org.osbot.rs07.input.mouse.RectangleDestination;
 import org.osbot.rs07.script.MethodProvider;
-import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 import java.util.List;
-
+/*
+While items are combining, right click hover the bank's open option.
+When items are combined, click open
+ */
 public class HoverBankerCreation extends AbstractCreationNode {
-    public HoverBankerCreation(Script script) {
-        super(script);
+    private NPC lastHoveredBanker;
+
+    public HoverBankerCreation(Bot bot) {
+        super(bot);
     }
 
     @Override
     int waitForPotions() throws InterruptedException {
         MethodProvider.sleep(Statics.randomNormalDist(5000, 2500));
         boolean hovered = hoverOverBankOption();
-        Inventory inv = script.getInventory();
         new ConditionalSleep(25000) {
             @Override
             public boolean condition() throws InterruptedException {
-                return !inv.contains(recipe.getPrimaryItemName()) || !inv.contains(recipe.getSecondaryItemName());
+                return !inventory.contains(recipe.getPrimary()) || !inventory.contains(recipe.getSecondary());
             }
         }.sleep();
 
         if(hovered){
-            Statics.shortRandomNormalDelay();
-            script.getMouse().click(false);
+            mouse.click(false);
         }
         return (int) Statics.randomNormalDist(1200, 200);
     }
 
     boolean hoverOverBankOption(){
-        NPC banker = script.getNpcs().closest("Banker");
-        Mouse mouse = script.getMouse();
-        Menu menu = script.getMenuAPI();
+        NPC banker = (lastHoveredBanker == null || !lastHoveredBanker.exists()) ? npcs.closest("Banker") : lastHoveredBanker;
         boolean success = false;
         if(banker != null){
             boolean found = false;
             int idx = 0;
             int attempts = 0;
             while(!found && attempts++ < 5){
-                if(mouse.click(new EntityDestination(script.getBot(), banker), true)){
+                if(mouse.click(new EntityDestination(bot, banker), true)){
                     if(menu.isOpen()){
                         List<Option> options = menu.getMenu();
                         for(; idx < options.size(); idx++){
@@ -61,7 +59,7 @@ public class HoverBankerCreation extends AbstractCreationNode {
                 }
             }
             if(found){
-                RectangleDestination bankOptionRect = new RectangleDestination(script.getBot(), menu.getOptionRectangle(idx));
+                RectangleDestination bankOptionRect = new RectangleDestination(bot, menu.getOptionRectangle(idx));
                 success = mouse.move(bankOptionRect);
             }
 

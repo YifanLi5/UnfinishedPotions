@@ -13,14 +13,14 @@ import Nodes.MarkovChain.ExecutableNode;
 import Util.CombinationRecipes;
 import Util.Margins;
 import Util.Statics;
+import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.Bank;
-import org.osbot.rs07.script.Script;
+import org.osbot.rs07.script.MethodProvider;
 
 import java.util.Arrays;
 import java.util.List;
 
-public abstract class AbstractWithdrawPrimary implements ExecutableNode{
-    Script script;
+public abstract class AbstractWithdrawPrimary extends MethodProvider implements ExecutableNode {
     CombinationRecipes recipe;
     boolean isJumping = false;
 
@@ -37,16 +37,15 @@ public abstract class AbstractWithdrawPrimary implements ExecutableNode{
             new Edge(HoverBankerCreation.class, 50),
             new Edge(PrematureStopCreation.class, 10));
 
-    AbstractWithdrawPrimary(Script script){
-        this.script = script;
-        this.recipe = Margins.getInstance(script).getCurrentRecipe();
+    AbstractWithdrawPrimary(Bot bot){
+        exchangeContext(bot);
+        this.recipe = Margins.getInstance(bot).getCurrentRecipe();
     }
 
     @Override
     public boolean canExecute() throws InterruptedException {
-        this.recipe = Margins.getInstance(script).getCurrentRecipe();
-        return !script.getInventory().contains(recipe.getPrimaryItemName())
-                || script.getInventory().isEmpty();
+        return !inventory.contains(recipe.getPrimary())
+                || inventory.isEmpty();
     }
 
     @Override
@@ -54,7 +53,6 @@ public abstract class AbstractWithdrawPrimary implements ExecutableNode{
         if(Statics.logNodes){
             logNode();
         }
-        Bank bank = script.getBank();
         if(bank.open()){
             if(bank.enableMode(Bank.BankMode.WITHDRAW_ITEM)){
                 if(withdrawPrimary())
@@ -69,19 +67,19 @@ public abstract class AbstractWithdrawPrimary implements ExecutableNode{
 
     @Override
     public void logNode() {
-        script.log(this.getClass().getSimpleName());
+        log(this.getClass().getSimpleName());
     }
 
     @Override
     public List<Edge> getAdjacentNodes() {
-        boolean hasSecondary = script.getInventory().contains(recipe.getSecondaryItemName());
+        boolean hasSecondary = inventory.contains(recipe.getSecondary());
         return hasSecondary ? postSecondaryEdges : preSecondaryEdges;
     }
 
     @Override
     public boolean isJumping() {
         if(isJumping){
-            script.log("going back to deposit node");
+            log("going back to deposit node");
             isJumping = false;
             return true;
         }
@@ -94,7 +92,7 @@ public abstract class AbstractWithdrawPrimary implements ExecutableNode{
     }
 
     boolean containsForeignItem(){
-        return !script.getInventory().isEmptyExcept(recipe.getPrimaryItemID(), recipe.getSecondaryItemID());
+        return !inventory.isEmptyExcept(recipe.getPrimary().getName(), recipe.getSecondary().getName());
     }
 
 }

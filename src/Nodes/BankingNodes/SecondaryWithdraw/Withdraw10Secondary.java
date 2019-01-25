@@ -1,11 +1,11 @@
 package Nodes.BankingNodes.SecondaryWithdraw;
 
-import org.osbot.rs07.script.Script;
+import org.osbot.rs07.Bot;
 
 public class Withdraw10Secondary extends AbstractWithdrawSecondary {
 
-    public Withdraw10Secondary(Script script) {
-        super(script);
+    public Withdraw10Secondary(Bot bot) {
+        super(bot);
     }
 
     @Override
@@ -14,7 +14,7 @@ public class Withdraw10Secondary extends AbstractWithdrawSecondary {
             isJumping = true;
             return false;
         }
-        return script.getBank().withdraw(recipe.getSecondaryItemName(), 10);
+        return bank.withdraw(recipe.getSecondary(), 10);
     }
 
     @Override

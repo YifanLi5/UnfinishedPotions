@@ -6,12 +6,10 @@ import Nodes.MarkovChain.ExecutableNode;
 import Util.CombinationRecipes;
 import Util.Margins;
 import Util.Statics;
-import Util.SupplierWithCE;
-import org.osbot.rs07.api.Inventory;
+import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.model.Item;
 import org.osbot.rs07.api.ui.RS2Widget;
 import org.osbot.rs07.script.MethodProvider;
-import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 import java.util.*;
@@ -19,43 +17,46 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static java.awt.event.KeyEvent.VK_SPACE;
 
-public abstract class AbstractCreationNode implements ExecutableNode {
+public abstract class AbstractCreationNode extends MethodProvider implements ExecutableNode {
 
     private static final String USE = "Use";
     CombinationRecipes recipe;
     int secondaryCount;
     int primaryCount;
 
-    Script script;
-
     private List<Edge> adjNodes = Collections.singletonList(new Edge(DepositNode.class, 1));
 
-    AbstractCreationNode(Script script){
-        this.script = script;
-        this.recipe = Margins.getInstance(script).getCurrentRecipe();
+    AbstractCreationNode(Bot bot){
+        exchangeContext(bot);
+        this.recipe = Margins.getInstance(bot).getCurrentRecipe();
     }
 
     @Override
     public boolean canExecute() {
-        this.recipe = Margins.getInstance(script).getCurrentRecipe();
+        this.recipe = Margins.getInstance(bot).getCurrentRecipe();
         return new ConditionalSleep(1000){
             @Override
-            public boolean condition() throws InterruptedException {
-                return script.getInventory().contains(recipe.getPrimaryItemName()) && script.getInventory().contains(recipe.getSecondaryItemName());
+            public boolean condition() {
+                return inventory.contains(recipe.getPrimary()) && inventory.getInventory().contains(recipe.getSecondary());
             }
         }.sleep();
     }
 
     @Override
     public int executeNode() throws InterruptedException {
-        //logNode();
-        if(script.getWidgets().closeOpenInterface()){
-            if(executeStep(this::combineComponents)){
-                if(this instanceof PrematureStopCreation){
-                    secondaryCount = (int) script.getInventory().getAmount(recipe.getSecondaryItemName());
-                    primaryCount = (int) script.getInventory().getAmount(recipe.getPrimaryItemName());
+        if(widgets.closeOpenInterface()){
+            boolean combined = new ConditionalSleep(2000){
+                @Override
+                public boolean condition() throws InterruptedException {
+                    return combineComponents();
                 }
-                if(executeStep(this::interactCreateWidget)){
+            }.sleep();
+            if(combined){
+                if(this instanceof PrematureStopCreation){
+                    secondaryCount = (int) inventory.getAmount(recipe.getSecondary());
+                    primaryCount = (int) inventory.getAmount(recipe.getPrimary());
+                }
+                if(interactCreateWidget()){
                     return waitForPotions();
                 }
             }
@@ -63,22 +64,12 @@ public abstract class AbstractCreationNode implements ExecutableNode {
         return 0;
     }
 
-    private boolean executeStep(SupplierWithCE<Boolean, InterruptedException> f) throws InterruptedException{
-        boolean result = f.get();
-        int attempts = 0;
-        while(!result && attempts < 5){
-            result = f.get();
-            attempts++;
-        }
-        return result;
-    }
-
     private boolean interactCreateWidget(){
         final RS2Widget[] make = new RS2Widget[1];
         boolean success = new ConditionalSleep(2000){
             @Override
             public boolean condition() throws InterruptedException {
-                List<RS2Widget> widgets = new ArrayList<>(script.getWidgets().containingActions(270, "Make", "String"));
+                List<RS2Widget> widgets = new ArrayList<>(getWidgets().containingActions(270, "Make", "String")); //If I did not cover an interaction action, put it here.
                 if(widgets.size() > 0 && widgets.get(0) != null){
                     make[0] = widgets.get(0);
                     return true;
@@ -89,9 +80,10 @@ public abstract class AbstractCreationNode implements ExecutableNode {
         }.sleep();
 
         if(success){
+            //roll to click on widget or use space shortcut
             boolean useHotKey = ThreadLocalRandom.current().nextBoolean();
             if(useHotKey){
-                script.getKeyboard().pressKey(VK_SPACE);
+                keyboard.pressKey(VK_SPACE);
                 return true;
             }
             return make[0].interact("Make");
@@ -100,23 +92,19 @@ public abstract class AbstractCreationNode implements ExecutableNode {
     }
 
     private boolean combineComponents() throws InterruptedException {
-        Inventory inv = script.getInventory();
-        int[] slots = bfsItemCombinationSlots(inv.getItems(),recipe.getPrimaryItemID(), recipe.getSecondaryItemID());
+        int[] slots = bfsItemCombinationSlots(inventory.getItems(), recipe.getPrimary().getId(), recipe.getSecondary().getId());
         //ensure algorithm did not fail. If you any other items in inventory or empty spaces, code may return {-1, -1}
-        //if such happens, use a regular combination interaction
         if(slots[0] != -1 && slots[1] != -1){
-            if(inv.interact(slots[0], USE)){
+            if(inventory.interact(slots[0], USE)){
                 MethodProvider.sleep(Statics.randomNormalDist(300,100));
-                return inv.isItemSelected() && inv.interact(slots[1], USE);
+                return inventory.isItemSelected() && inventory.interact(slots[1], USE);
             }
-        } else {
-            if(inv.interact(USE, recipe.getPrimaryItemID())){
-                MethodProvider.sleep(Statics.randomNormalDist(300,100));
-                return inv.isItemSelected() && inv.interact(USE, recipe.getSecondaryItemID());
-
+        } else { //if such happens (return {-1, -1}, use a regular combination interaction
+            if(inventory.interact(USE, recipe.getPrimary())) {
+                MethodProvider.sleep(Statics.randomNormalDist(300, 100));
+                return inventory.isItemSelected() && inventory.interact(USE, recipe.getSecondary());
             }
         }
-
         return false;
     }
 
@@ -153,7 +141,7 @@ public abstract class AbstractCreationNode implements ExecutableNode {
             if(invItems[current].getId() == targetItemID){
                 return current;
             }
-            List<Integer> successors = getSuccessors(current);
+            List<Integer> successors = getBFSSuccessors(current);
             successors.forEach(slot -> {
                 if(!visitedSlots[slot]){
                     visitedSlots[slot] = true;
@@ -164,7 +152,7 @@ public abstract class AbstractCreationNode implements ExecutableNode {
         return -1;
     }
 
-    private List<Integer> getSuccessors(int invSlot) {
+    private List<Integer> getBFSSuccessors(int invSlot) {
         List<Integer> successors = new ArrayList<>();
         boolean canUp = false, canRight = false, canDown = false, canLeft = false;
         if(!(invSlot <= 3)){ //up, cannot search up if invSlot is top 4 slots
@@ -208,7 +196,7 @@ public abstract class AbstractCreationNode implements ExecutableNode {
 
     @Override
     public void logNode() {
-        script.log(this.getClass().getSimpleName());
+        log(this.getClass().getSimpleName());
     }
 
     //define what to do when waiting for potions to finish, returns the sleeptime for onloop.

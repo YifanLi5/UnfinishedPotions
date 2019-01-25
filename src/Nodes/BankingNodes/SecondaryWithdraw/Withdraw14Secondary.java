@@ -1,14 +1,14 @@
 package Nodes.BankingNodes.SecondaryWithdraw;
 
+import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.Bank;
-import org.osbot.rs07.script.Script;
 
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Withdraw14Secondary extends AbstractWithdrawSecondary {
 
-    public Withdraw14Secondary(Script script) {
-        super(script);
+    public Withdraw14Secondary(Bot bot) {
+        super(bot);
     }
 
     @Override
@@ -17,12 +17,12 @@ public class Withdraw14Secondary extends AbstractWithdrawSecondary {
             isJumping = true;
             return false;
         }
-        if(script.getInventory().contains(recipe.getPrimaryItemName())){
+        if(inventory.contains(recipe.getPrimary())){
             if(ThreadLocalRandom.current().nextBoolean()){
-                return script.getBank().withdraw(recipe.getSecondaryItemName(), Bank.WITHDRAW_ALL);
+                return bank.withdraw(recipe.getSecondary(), Bank.WITHDRAW_ALL);
             }
         }
-        return script.getBank().withdraw(recipe.getSecondaryItemName(), 14);
+        return bank.withdraw(recipe.getSecondary(), 14);
     }
 
     @Override

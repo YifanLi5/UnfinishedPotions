@@ -1,81 +1,48 @@
 package Util;
+import org.osbot.rs07.api.ui.Skill;
 
 public enum CombinationRecipes {
+    AVANTOE_UNF_RECIPE(ItemData.CLEAN_AVANTOE, ItemData.VIAL_OF_WATER, ItemData.UNF_AVANTOE_POTION, Skill.HERBLORE, 50, true),
+    TOADFLAX_UNF_RECIPE(ItemData.CLEAN_TOADFLAX, ItemData.VIAL_OF_WATER, ItemData.UNF_TOADFLAX_POTION, Skill.HERBLORE, 34, true),
+    IRIT_UNF_RECIPE(ItemData.CLEAN_IRIT, ItemData.VIAL_OF_WATER, ItemData.UNF_IRIT_POTION, Skill.HERBLORE, 48, true),
+    KWUARM_UNF_RECIPE(ItemData.CLEAN_KWUARM, ItemData.VIAL_OF_WATER, ItemData.UNF_KWUARM_POTION, Skill.HERBLORE, 55, true),
+    HARRALANDER_UNF_RECIPE(ItemData.CLEAN_HARRALANDER, ItemData.VIAL_OF_WATER, ItemData.UNF_HARRALANDER_POTION, Skill.HERBLORE, 22, true);
 
-    AVANTOE("Avantoe", "Vial of water", "Avantoe potion (unf)", "avan", 261, 227, 103, 50, true),
-    TOADFLAX("Toadflax", "Vial of water", "Toadflax potion (unf)", "toadfl", 2998, 227, 3002, 34, true),
-    RANARR("Ranarr", "Vial of water", "Ranarr potion (unf)", "ranar", 257, 227, 99, 30, true),
-    IRIT("Irit leaf", "Vial of water", "Irit potion (unf)", "irit", 259, 227, 101, 45, true),
-    KWUARM("Kwuarm", "Vial of water", "Kwuarm potion (unf)", "kwu", 263, 227, 105, 55, true),
-    HARRALANDER("Harralander", "Vial of water", "Harralander potion (unf)", "harra", 255, 227, 97, 21, true),
+    private ItemData primary, secondary, product;
+    private Skill skill;
+    private int reqLvl;
+    private boolean allowGERestock;
 
-    ATTACK_POTION("Guam potion (unf)", "Eye of newt", "Attack potion (3)", "n/a", 91, 221, 121, 3, false),
-
-    CLAY("Clay", "Jug of water", "Soft clay", "clay", 434, 1937, 1761, 1, false),
-    AIR_BATTLESTAFF("Battlestaff", "Air orb", "Air Battlestaff", "", 1391, 573, 1397, 66, false),
-    YEW_LONGBOW("Yew longbow (u)", "Bow string", "Yew longbow", "yew long", 66, 1777, 855, 70, false);
-
-    private String primaryItemName, secondaryItemName, finishedItemName, geSearchTerm;
-    private int primaryItemID, secondaryItemID, finishedItemID, reqLvl;
-    private boolean isUnfPotion;
-
-    CombinationRecipes(String primaryItemName, String secondaryItemName, String finishedItemName, String geSearchTerm, int primaryItemID, int secondaryItemID, int finishedItemID, int reqLvl, boolean isUnfPotion) {
-        this.primaryItemName = primaryItemName;
-        this.secondaryItemName = secondaryItemName;
-        this.finishedItemName = finishedItemName;
-        this.geSearchTerm = geSearchTerm;
-        this.primaryItemID = primaryItemID;
-        this.secondaryItemID = secondaryItemID;
-        this.finishedItemID = finishedItemID;
+    CombinationRecipes(ItemData primary, ItemData secondary, ItemData product, Skill skill, int reqLvl, boolean allowGERestock) {
+        this.primary = primary;
+        this.secondary = secondary;
+        this.product = product;
+        this.skill = skill;
         this.reqLvl = reqLvl;
-        this.isUnfPotion = isUnfPotion;
+        this.allowGERestock = allowGERestock;
     }
 
-    public String getPrimaryItemName() {
-        return primaryItemName;
+    public ItemData getPrimary() {
+        return primary;
     }
 
-    public String getSecondaryItemName() {
-        return secondaryItemName;
+    public ItemData getSecondary() {
+        return secondary;
     }
 
-    public String getFinishedItemName() {
-        return finishedItemName;
+    public ItemData getProduct() {
+        return product;
     }
 
-    public String getGeSearchTerm() {
-        return geSearchTerm;
-    }
-
-    public int getPrimaryItemID() {
-        return primaryItemID;
-    }
-
-    public int getPrimaryNotedItemID(){
-        return primaryItemID+1;
-    }
-
-    public int getSecondaryItemID() {
-        return secondaryItemID;
-    }
-
-    public int getSecondaryNotedItemID(){
-        return secondaryItemID+1;
-    }
-
-    public int getFinishedItemID() {
-        return finishedItemID;
-    }
-
-    public int getFinishedNotedItemID() {
-        return getFinishedItemID()+1;
+    public Skill getSkill() {
+        return skill;
     }
 
     public int getReqLvl() {
         return reqLvl;
     }
 
-    public boolean isUnfPotion() {
-        return isUnfPotion;
+    public boolean canUseGE() {
+        return allowGERestock;
     }
 }

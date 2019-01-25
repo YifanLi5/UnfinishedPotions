@@ -11,23 +11,23 @@ import Nodes.CreationNodes.PrematureStopCreation;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
 import Util.CombinationRecipes;
+import Util.ItemData;
 import Util.Margins;
 import Util.Statics;
+import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.Bank;
-import org.osbot.rs07.api.Inventory;
-import org.osbot.rs07.script.Script;
+import org.osbot.rs07.script.MethodProvider;
 
 import java.util.Arrays;
 import java.util.List;
 
-public abstract class AbstractWithdrawSecondary implements ExecutableNode{
-    Script script;
+public abstract class AbstractWithdrawSecondary extends MethodProvider implements ExecutableNode{
     CombinationRecipes recipe;
     boolean isJumping = false;
 
     private List<Edge> prePrimaryNodes = Arrays.asList(
             new Edge(Withdraw10Primary.class, 1),
-            new Edge(Withdraw14Primary.class, 100),
+            new Edge(Withdraw14Primary.class, 98),
             new Edge(WithdrawXPrimary.class, 1));
 
     private List<Edge> postPrimaryNodes = Arrays.asList(
@@ -36,15 +36,15 @@ public abstract class AbstractWithdrawSecondary implements ExecutableNode{
             new Edge(HoverBankerCreation.class, 50),
             new Edge(PrematureStopCreation.class, 10));
 
-    public AbstractWithdrawSecondary(Script script) {
-        this.recipe = Margins.getInstance(script).getCurrentRecipe();
-        this.script = script;
+    public AbstractWithdrawSecondary(Bot bot) {
+        exchangeContext(bot);
+        this.recipe = Margins.getInstance(bot).getCurrentRecipe();
     }
 
     @Override
     public boolean canExecute() throws InterruptedException {
-        this.recipe = Margins.getInstance(script).getCurrentRecipe();
-        return !script.getInventory().contains(recipe.getSecondaryItemName());
+        this.recipe = Margins.getInstance(bot).getCurrentRecipe();
+        return !inventory.contains(recipe.getSecondary());
     }
 
     @Override
@@ -52,15 +52,12 @@ public abstract class AbstractWithdrawSecondary implements ExecutableNode{
         if(Statics.logNodes){
             logNode();
         }
-        Bank bank = script.getBank();
         if(bank.open()){
             if(bank.enableMode(Bank.BankMode.WITHDRAW_ITEM)){
                 if(withdrawSecondary())
                     return (int) Statics.randomNormalDist(500, 100);
             }
         }
-
-
         return 0;
     }
 
@@ -68,7 +65,7 @@ public abstract class AbstractWithdrawSecondary implements ExecutableNode{
 
     @Override
     public void logNode() {
-        script.log(this.getClass().getSimpleName());
+        log(this.getClass().getSimpleName());
     }
 
     @Override
@@ -78,12 +75,9 @@ public abstract class AbstractWithdrawSecondary implements ExecutableNode{
     }
 
     private boolean invContainsPrimaryComponent(){
-        Inventory inv = script.getInventory();
-        return inv.contains(CombinationRecipes.AVANTOE.getPrimaryItemName())
-                || inv.contains(CombinationRecipes.TOADFLAX.getPrimaryItemName())
-                || inv.contains(CombinationRecipes.RANARR.getPrimaryItemName())
-                || inv.contains(CombinationRecipes.IRIT.getPrimaryItemName())
-                || inv.contains(CombinationRecipes.KWUARM.getPrimaryItemName());
+        //obtain array of all clean herbs (primary component) from all recipes
+        ItemData[] primaryComponents = Arrays.stream(CombinationRecipes.values()).map(CombinationRecipes::getPrimary).toArray(ItemData[]::new);
+        return inventory.contains(primaryComponents);
     }
 
     @Override
@@ -101,6 +95,6 @@ public abstract class AbstractWithdrawSecondary implements ExecutableNode{
     }
 
     boolean containsForeignItem(){
-        return !script.getInventory().isEmptyExcept(recipe.getPrimaryItemID(), recipe.getSecondaryItemID());
+        return !inventory.isEmptyExcept(recipe.getPrimary().getName(), recipe.getSecondary().getName());
     }
 }

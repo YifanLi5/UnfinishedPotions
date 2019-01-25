@@ -2,38 +2,25 @@ package Nodes.GENodes;
 
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
-import Util.CombinationRecipes;
-import Util.GrandExchangeUtil.GrandExchangeOperations;
-import Util.GrandExchangeUtil.GrandExchangePolling;
 import Util.Margins;
-import org.osbot.rs07.api.Bank;
+import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.script.MethodProvider;
-import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 import java.util.Collections;
 import java.util.List;
 
-public class GESpinLockSellNode implements ExecutableNode {
-    private Script script;
-    private GrandExchangeOperations operations;
-    private GrandExchangePolling polling;
-    private Margins margins;
-    private CombinationRecipes recipe;
+public class WaitUntilSell extends AbstractGENode implements ExecutableNode {
 
-    public GESpinLockSellNode(Script script) {
-        this.script = script;
-        this.operations = GrandExchangeOperations.getInstance(script.bot);
-        this.polling = GrandExchangePolling.getInstance(script);
-        margins = Margins.getInstance(script);
-        recipe = margins.getCurrentRecipe();
+    public WaitUntilSell(Bot bot) {
+        super(bot);
     }
 
     @Override
     public boolean canExecute() throws InterruptedException {
-        NPC clerk = script.getNpcs().closest("Grand Exchange Clerk");
+        NPC clerk = npcs.closest("Grand Exchange Clerk");
         return clerk != null && clerk.exists();
     }
 
@@ -45,7 +32,7 @@ public class GESpinLockSellNode implements ExecutableNode {
         boolean withdrawnSellItem = new ConditionalSleep(5000, 1000) {
             @Override
             public boolean condition() throws InterruptedException {
-                return withdrawSellItem(recipe.getFinishedItemID());
+                return withdrawSellItem(recipe.getProduct());
             }
         }.sleep();
         if(withdrawnSellItem) {
@@ -60,11 +47,11 @@ public class GESpinLockSellNode implements ExecutableNode {
                 lastSuccess = "withdrawnMarginCheckGP";
                 int[] margin = margins.findFinishedProductMargin(recipe);
                 if(margin[0] == Margins.DEFAULT_MARGIN[0] || margin[1] == Margins.DEFAULT_MARGIN[1]){
-                    script.warn("ERROR: margin variable in GESpinLockSell never changed from default");
+                    warn("ERROR: margin variable in GESpinLockSell never changed from default");
                     margin = margins.findSpecificConversionMargin(recipe);
                 }
                 int instaSell = margin[0];
-                if(instaSell > 0 && operations.sellAll(recipe.getFinishedNotedItemID(), recipe.getFinishedItemName(), instaSell)){
+                if(instaSell > 0 && operations.sellAll(recipe.getProduct(), instaSell)){
                     waitUntilSold();
                     lastSuccess = "postSellSpinlock";
                 }
@@ -79,28 +66,28 @@ public class GESpinLockSellNode implements ExecutableNode {
 
             }
         }
-        script.log("last success: " + lastSuccess);
+        log("last success: " + lastSuccess);
         return 1000;
     }
 
     private void waitUntilSold() throws InterruptedException {
         int loops = 0;
         boolean lock = true;
-        script.log("Entering spinlocking in GESell");
+        log("Entering spinlocking in GESell");
         while(lock){
             loops++;
             Thread.sleep(1000);
             if(loops > 60){
                 loops = 0;
                 if(decreaseOffer()){
-                    script.log("decrease offer successful");
+                    log("decrease offer successful");
                 } else{
-                    script.warn("decrease offer unsuccessful");
+                    warn("decrease offer unsuccessful");
                 }
             }
             lock = doContinueLocking();
         }
-        script.log("GESell spinlock released");
+        log("GESell spinlock released");
     }
 
     private boolean doContinueLocking(){
@@ -109,59 +96,31 @@ public class GESpinLockSellNode implements ExecutableNode {
             double percentComplete = operations.getOfferCompletionPercentage(sellingBox);
             boolean doLock = percentComplete < 0.75;
             if(!doLock){
-                script.log("release lock, at least 75% complete");
+                log("release lock, at least 75% complete");
             }
             return doLock;
         }
         return false;
     }
 
-    private GrandExchange.Box findFinishedProductSellingBox(){
-        for(GrandExchange.Box box: GrandExchange.Box.values()){
-            if(operations.getItemId(box) == recipe.getFinishedItemID()){
-                return box;
-            }
-        }
-        return null;
-    }
-
     private boolean decreaseOffer() throws InterruptedException {
         int newSell = margins.findFinishedProductMargin(recipe)[0];
-        script.log("decreasing offer to " + newSell);
-        if(operations.abortOffersWithItem(recipe.getFinishedItemName())){
+        log("decreasing offer to " + newSell);
+        if(operations.abortOffersWithItem(recipe.getProduct())){
             MethodProvider.sleep(1000);
             if(operations.collect()){
                 MethodProvider.sleep(1000);
-                return operations.sellAll(recipe.getFinishedNotedItemID(), recipe.getFinishedItemName(), newSell);
-            }
-        }
-        return false;
-    }
-
-    private boolean withdrawSellItem(int itemID) throws InterruptedException {
-        Bank bank = script.getBank();
-        if (bank.open()) {
-            boolean success = new ConditionalSleep(1000) {
-                @Override
-                public boolean condition() throws InterruptedException {
-                    return bank.isOpen();
-                }
-            }.sleep();
-            if (success) {
-                if(bank.getAmount(itemID) > 0 && bank.enableMode(Bank.BankMode.WITHDRAW_NOTE)){
-                    return bank.withdraw(itemID, Bank.WITHDRAW_ALL);
-                } else return script.getInventory().contains(itemID);
+                return operations.sellAll(recipe.getProduct(), newSell);
             }
         }
         return false;
     }
 
     private boolean withdrawCashForMarginCheck() throws InterruptedException {
-        int invCoins = (int) script.getInventory().getAmount(995);
+        int invCoins = (int) inventory.getAmount(995);
         if(invCoins >= 5000){
             return true;
         } else {
-            Bank bank = script.getBank();
             if(bank.open()){
                 boolean success = new ConditionalSleep(1000){
                     @Override
@@ -182,7 +141,7 @@ public class GESpinLockSellNode implements ExecutableNode {
 
     @Override
     public List<Edge> getAdjacentNodes() {
-        return Collections.singletonList(new Edge(GESpinLockBuyNode.class, 1));
+        return Collections.singletonList(new Edge(WaitUntilBuy.class, 1));
     }
 
     @Override
@@ -193,15 +152,5 @@ public class GESpinLockSellNode implements ExecutableNode {
     @Override
     public Class<? extends ExecutableNode> setJumpTarget() {
         return null;
-    }
-
-    @Override
-    public void logNode() {
-        script.log(this.getClass().getSimpleName());
-    }
-
-    public void stopThread(){
-        if(polling != null)
-            polling.stopQueryingOffers();
     }
 }

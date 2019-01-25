@@ -1,5 +1,6 @@
 package Util.GrandExchangeUtil;
 
+import Util.ItemData;
 import Util.Statics;
 import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.Bank;
@@ -15,7 +16,7 @@ import java.util.List;
 /**
  * Extended GE api to include special methods for buying/selling ingredients and finished products
  */
-public class GrandExchangeOperations extends GrandExchange{
+public class GrandExchangeOperations extends GrandExchange {
 
     private static GrandExchangeOperations singleton;
 
@@ -32,14 +33,23 @@ public class GrandExchangeOperations extends GrandExchange{
 
     /**
      * buys 1 copy of some item at a high price then sells it.
-     * @param itemID the item to price check
+     * @param item the itemData entry to use
+     * @return item's instant sell (margin[1]) and instant buy (margin[0])
+     */
+    public int[] priceCheckItemMargin(ItemData item) throws InterruptedException {
+        return priceCheckItemMargin(item.getId(), item.getGESearchTerm());
+    }
+
+    /**
+     * buys 1 copy of some item at a high price then sells it.
+     * @param itemID the item's id to price check
      * @param searchTerm used to search the GE for the item
      * @return item's instant sell (margin[1]) and instant buy (margin[0])
      */
     public int[] priceCheckItemMargin(int itemID, String searchTerm) throws InterruptedException {
         sleep(2000);
         int[] margin = new int[2];
-        Box buyPredictedBox = findFreeGEBox();
+        Box buyPredictedBox = getSelectedGEBox();
         String lastSuccess = "";
         if(withdrawCash()){
             lastSuccess = "withdrawCash";
@@ -72,7 +82,7 @@ public class GrandExchangeOperations extends GrandExchange{
                                         return inventory.contains(itemID);
                                     }
                                 }.sleep();
-                                Box sellPredictedBox = findFreeGEBox();
+                                Box sellPredictedBox = getSelectedGEBox();
                                 if(invHasItem && sellItem(itemID, 1, 1)){
                                     lastSuccess = "invHasItem && sellItem";
                                     if(sellPredictedBox != null){
@@ -111,8 +121,12 @@ public class GrandExchangeOperations extends GrandExchange{
                 }
             }
         }
-        log("last success: " + lastSuccess);
+        warn("failure in priceCheck! the last success was: " + lastSuccess);
         return new int[]{100000, 100000};
+    }
+
+    public boolean sellAll(ItemData item, int price) throws InterruptedException {
+        return sellAll(item.getId(), item.getName(), price);
     }
 
     /**
@@ -128,6 +142,10 @@ public class GrandExchangeOperations extends GrandExchange{
             return sellItem(itemID, price, (int) inventory.getAmount(itemName));
         }
         return false;
+    }
+
+    public boolean buyUpToLimit(ItemData item, int price, int buyQuantityLimit) {
+        return buyUpToLimit(item.getId(), item.getGESearchTerm(), price, buyQuantityLimit);
     }
 
     /**
@@ -158,6 +176,10 @@ public class GrandExchangeOperations extends GrandExchange{
             }
         }
         return false;
+    }
+
+    public boolean abortOffersWithItem(ItemData item) throws InterruptedException {
+        return abortOffersWithItem(item.getName());
     }
 
     /**
@@ -208,7 +230,7 @@ public class GrandExchangeOperations extends GrandExchange{
         return ((double) getAmountTraded(box)) / getAmountToTransfer(box);
     }
 
-    private GrandExchange.Box findFreeGEBox(){
+    private GrandExchange.Box getSelectedGEBox(){
         for (GrandExchange.Box box : GrandExchange.Box.values()) {
             if(getStatus(box) == GrandExchange.Status.EMPTY){
                 return box;
@@ -218,7 +240,7 @@ public class GrandExchangeOperations extends GrandExchange{
     }
 
     private boolean openGE() {
-        if(!isOpen()){ // Osbot API NPEs here!!!
+        if(!isOpen()){
             NPC grandExchangeClerk = npcs.closest("Grand Exchange Clerk");
             if(grandExchangeClerk != null){
                 boolean didInteraction = grandExchangeClerk.interact("Exchange");

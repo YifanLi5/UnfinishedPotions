@@ -7,9 +7,6 @@ import java.util.Random;
 
 public class Statics {
 
-    public static final int CLEAN_HERB = 101; //ranarr = 257, toadflax = 2998, avantoe = 261
-    public static final int VIAL_OF_WATER = 221;
-
     public static Script script;
     public static final boolean logNodes = false;
 

@@ -3,47 +3,48 @@ package Nodes.BankingNodes;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
 import Util.Statics;
-import org.osbot.rs07.api.Menu;
-import org.osbot.rs07.api.Mouse;
+import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.api.ui.Option;
 import org.osbot.rs07.input.mouse.EntityDestination;
 import org.osbot.rs07.input.mouse.RectangleDestination;
-import org.osbot.rs07.script.Script;
+import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 import java.util.Collections;
 import java.util.List;
 
 
-public class DepositNode implements ExecutableNode {
-    private Script script;
+public class DepositNode extends MethodProvider implements ExecutableNode {
+    private NPC lastUsedBanker;
     private List<Edge> adjNodes = Collections.singletonList(new Edge(DecideRestockNode.class, 1));
 
-    public DepositNode(Script script){
-        this.script = script;
-
+    public DepositNode(Bot bot){
+        exchangeContext(bot);
     }
 
     @Override
-    public boolean canExecute() throws InterruptedException {
-        return script.getNpcs().closestThatContains("Banker").exists();
+    public boolean canExecute() {
+        if(lastUsedBanker == null){
+            lastUsedBanker = npcs.closestThatContains("Banker");
+        }
+        return lastUsedBanker.exists();
     }
 
     @Override
-    public int executeNode() throws InterruptedException {
+    public int executeNode() {
         boolean open = new ConditionalSleep(5000) {
             @Override
             public boolean condition() throws InterruptedException {
-                return script.getBank().isOpen() || rightClickOpenBank();
+                return bank.isOpen() || rightClickOpenBank();
             }
         }.sleep();
         if(open){
-            if(!script.getInventory().isEmpty()){
+            if(!inventory.isEmpty()){
                 boolean deposited = new ConditionalSleep(5000) {
                     @Override
                     public boolean condition() throws InterruptedException {
-                        return script.getBank().depositAll();
+                        return bank.depositAll();
                     }
                 }.sleep();
                 if(deposited){
@@ -56,42 +57,36 @@ public class DepositNode implements ExecutableNode {
     }
 
     private boolean rightClickOpenBank() throws InterruptedException {
-        script.getWidgets().closeOpenInterface();
+        widgets.getWidgets().closeOpenInterface();
         if(hoverOverBankOption()){
             Statics.shortRandomNormalDelay();
-            return script.getMouse().click(false);
+            return mouse.click(false);
         }
         return false;
     }
 
     private boolean hoverOverBankOption() throws InterruptedException {
-        NPC banker = script.getNpcs().closest("Banker");
-        Mouse mouse = script.getMouse();
-        Menu menu = script.getMenuAPI();
         boolean success = false;
-        if(banker != null){
-            boolean found = false;
-            int idx = 0;
-            int attempts = 0;
-            while(!found && attempts++ < 5){
-                if(mouse.click(new EntityDestination(script.getBot(), banker), true)){
-                    if(menu.isOpen()){
-                        List<Option> options = menu.getMenu();
-                        for(; idx < options.size(); idx++){
-                            if(options.get(idx).action.equals("Bank")){
-                                found = true;
-                                break;
-                            }
+        boolean found = false;
+        int idx = 0;
+        int attempts = 0;
+        while(!found && attempts++ < 3){
+            if(mouse.click(new EntityDestination(bot, lastUsedBanker), true)){
+                if(menu.isOpen()){
+                    List<Option> options = menu.getMenu();
+                    for(; idx < options.size(); idx++){
+                        if(options.get(idx).action.equals("Bank")){
+                            found = true;
+                            break;
                         }
                     }
                 }
             }
-            if(found){
-                Statics.shortRandomNormalDelay();
-                RectangleDestination bankOptionRect = new RectangleDestination(script.getBot(), menu.getOptionRectangle(idx));
-                success = mouse.move(bankOptionRect);
-            }
-
+        }
+        if(found){
+            Statics.shortRandomNormalDelay();
+            RectangleDestination bankOptionRect = new RectangleDestination(bot, menu.getOptionRectangle(idx));
+            success = mouse.move(bankOptionRect);
         }
         return success;
     }
@@ -113,6 +108,6 @@ public class DepositNode implements ExecutableNode {
 
     @Override
     public void logNode() {
-        script.log(this.getClass().getSimpleName());
+        log(this.getClass().getSimpleName());
     }
 }

@@ -7,7 +7,7 @@ import Nodes.BankingNodes.SecondaryWithdraw.Withdraw10Secondary;
 import Nodes.BankingNodes.SecondaryWithdraw.Withdraw14Secondary;
 import Nodes.BankingNodes.SecondaryWithdraw.WithdrawXSecondary;
 import Nodes.GENodes.AbortRelevantOffers;
-import Nodes.GENodes.InitialBuy;
+import Nodes.GENodes.InitialBuyWaitUntil;
 import Nodes.GENodes.IntermittentBuy;
 import Nodes.GENodes.IntermittentSell;
 import Nodes.MarkovChain.Edge;
@@ -15,11 +15,10 @@ import Nodes.MarkovChain.ExecutableNode;
 import Util.CombinationRecipes;
 import Util.Margins;
 import Util.Statics;
-import org.osbot.rs07.api.Bank;
+import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.event.RandomExecutor;
 import org.osbot.rs07.script.MethodProvider;
-import org.osbot.rs07.script.Script;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -28,8 +27,8 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static ScriptClasses.ScriptPaint.geOpsEnabled;
 
-public class DecideRestockNode implements ExecutableNode {
-    private Script script;
+public class DecideRestockNode extends MethodProvider implements ExecutableNode {
+
     private CombinationRecipes recipe;
     private boolean isJumping = false;
     private Class<? extends ExecutableNode> jumpTarget;
@@ -39,9 +38,9 @@ public class DecideRestockNode implements ExecutableNode {
     private int unfCountMinThreshold;
     private long lastIntermittentBuyTime = 0;
 
-    public DecideRestockNode(Script script) {
-        this.script = script;
-        margin = Margins.getInstance(script);
+    public DecideRestockNode(Bot bot) {
+        exchangeContext(bot);
+        margin = Margins.getInstance(bot);
         this.recipe = margin.getCurrentRecipe();
 
         adjNodes = Arrays.asList(
@@ -53,13 +52,12 @@ public class DecideRestockNode implements ExecutableNode {
                 new Edge(WithdrawXSecondary.class, 1));
 
         unfCountMinThreshold = ThreadLocalRandom.current().nextInt(300, 600);
-        script.log(IntermittentSell.class.getSimpleName() + " runs when there are " + unfCountMinThreshold + " unf potions");
+        log(IntermittentSell.class.getSimpleName() + " runs when there are " + unfCountMinThreshold + " unf potions");
     }
 
     @Override
     public boolean canExecute() {
-        this.recipe = Margins.getInstance(script).getCurrentRecipe();
-        return script.getBank().isOpen();
+        return recipe.canUseGE() && geOpsEnabled && bank.isOpen();
     }
 
     @Override
@@ -67,72 +65,67 @@ public class DecideRestockNode implements ExecutableNode {
         if(Statics.logNodes){
             logNode();
         }
-        Bank bank = script.getBank();
-        int primaryRemaining = 0;
-
         if(recipe != null){
-            primaryRemaining = (int) bank.getAmount(recipe.getPrimaryItemName());
-            int secondaryRemaining = (int) bank.getAmount(recipe.getSecondaryItemName());
-            if(secondaryRemaining < 14 || (!recipe.isUnfPotion() && primaryRemaining < 14)){
-                script.stop(false);
-                script.log("ran out of secondary or primary or is not doing unf pots");
-                //TODO: buy vials
+            int primaryRemaining = (int) bank.getAmount(recipe.getPrimary());
+            int secondaryRemaining = (int) bank.getAmount(recipe.getSecondary());
+
+            //TODO: support restock of secondary
+            if(secondaryRemaining < 14){
+                return -1;
             }
-            if(recipe.isUnfPotion()){
-                jumpTarget = null;
-                if(isBreakImminent()){
-                    while(isBreakImminent()){
-                        script.log("sleeping until break handler takes over");
-                        MethodProvider.sleep(5000);
-                    }
-                } else {
-                    if(recipe == null && geOpsEnabled){
+
+            jumpTarget = null;
+            if(isBreakImminent()){
+                while(isBreakImminent()){
+                    log("sleeping until break handler takes over");
+                    sleep(10000);
+                }
+            } else {
+                if(recipe == null && geOpsEnabled){
+                    isJumping = true;
+                    jumpTarget = InitialBuyWaitUntil.class;
+                }
+                else if(primaryRemaining < 14){
+                    if(geOpsEnabled){
                         isJumping = true;
-                        jumpTarget = InitialBuy.class;
-                    }
-                    else if(primaryRemaining < 14){
-                        if(recipe.isUnfPotion()){
-                            if(geOpsEnabled){
-                                isJumping = true;
-                                jumpTarget = AbortRelevantOffers.class;
-                            } else {
-                                CombinationRecipes next = null;
-                                for(CombinationRecipes recipes: CombinationRecipes.values()){
-                                    if(bank.getAmount(recipes.getPrimaryItemName()) >= 14){
-                                        next = recipes;
-                                    }
-                                }
-                                if(next == null){
-                                    script.log("all cleaned up!");
-                                    script.stop(false);
-                                } else {
-                                    script.log("selected " + next + " as next");
-                                    margin.setCurrentRecipe(next);
-                                }
+                        jumpTarget = AbortRelevantOffers.class;
+                    } else {
+                        //geOpsEnabled = false means time to clean up! Go through every clean herb and make unf potions.
+                        //when done, stop script.
+                        CombinationRecipes next = null;
+                        for(CombinationRecipes recipes: CombinationRecipes.values()){
+                            if(bank.contains(recipes.getPrimary())){
+                                next = recipes;
+                                break;
                             }
                         }
-                    } else if(isJumpingToIntermittentSell() && geOpsEnabled){
-                        isJumping = true;
-                        jumpTarget = IntermittentSell.class;
-                    } else if(isJumpingToIntermittentBuy() && geOpsEnabled){
-                        isJumping = true;
-                        jumpTarget = IntermittentBuy.class;
+                        if(next == null){
+                            log("all cleaned up!");
+                            return -1;
+                        } else {
+                            log("selected " + next + " as next");
+                            margin.setCurrentRecipe(next);
+                        }
                     }
-                    if(jumpTarget != null)
-                        script.log("jumping to: " + jumpTarget.getSimpleName());
+                } else if(isJumpingToIntermittentSell() && geOpsEnabled){
+                    isJumping = true;
+                    jumpTarget = IntermittentSell.class;
+                } else if(isJumpingToIntermittentBuy() && geOpsEnabled){
+                    isJumping = true;
+                    jumpTarget = IntermittentBuy.class;
                 }
+                if(jumpTarget != null)
+                    log("jumping to: " + jumpTarget.getSimpleName());
             }
         }
-
-
         return 0;
     }
 
     private boolean isBreakImminent(){
-        RandomExecutor randomExecutor = script.getBot().getRandomExecutor();
+        RandomExecutor randomExecutor = bot.getRandomExecutor();
         int minsUntilBreak = randomExecutor != null ? randomExecutor.getTimeUntilBreak() : -1;
         if(minsUntilBreak < 3){
-            script.log("Break Imminent in: " + minsUntilBreak + " mins");
+            log("Break Imminent in: " + minsUntilBreak + " mins");
         }
         return minsUntilBreak < 2 && minsUntilBreak >= 0;
     }
@@ -140,23 +133,24 @@ public class DecideRestockNode implements ExecutableNode {
 
 
     private boolean isJumpingToIntermittentSell(){
-        long unfCount = script.getBank().getAmount(recipe.getFinishedItemName()) + script.getInventory().getAmount(recipe.getFinishedItemName());
+        long unfCount = bank.getAmount(recipe.getProduct()) + inventory.getAmount(recipe.getProduct());
         if(unfCount > unfCountMinThreshold){
-            unfCountMinThreshold = ThreadLocalRandom.current().nextInt(200, 400);
-            script.log(IntermittentSell.class.getSimpleName() + " will run again when there are " + unfCountMinThreshold + " or more unf potions");
+            unfCountMinThreshold = ThreadLocalRandom.current().nextInt(100, 400);
+            log(IntermittentSell.class.getSimpleName() + " will run again when there are " + unfCountMinThreshold + " or more unf potions");
             return true;
         }
         return false;
     }
 
+    //do intermittentBuy if the offer completion percent of an existing potion sell offer exceeds 50%
+    //and the last time intermittentBuy ran was over 10mins ago
     private boolean isJumpingToIntermittentBuy(){
         long nowUnix = Instant.now().getEpochSecond();
         long timeSinceLast = nowUnix - lastIntermittentBuyTime;
         GrandExchange.Box finishedProductSellBox = findFinishedProductSellingBox();
         if(finishedProductSellBox != null && timeSinceLast > 600){
-            GrandExchange ge = script.getGrandExchange();
-            int amountTraded = ge.getAmountTraded(finishedProductSellBox);
-            int totalAmountToTrade = ge.getAmountToTransfer(finishedProductSellBox);
+            int amountTraded = grandExchange.getAmountTraded(finishedProductSellBox);
+            int totalAmountToTrade = grandExchange.getAmountToTransfer(finishedProductSellBox);
             double completionPercent = amountTraded / totalAmountToTrade;
             if(completionPercent >= 0.5){
                 lastIntermittentBuyTime = nowUnix;
@@ -166,18 +160,9 @@ public class DecideRestockNode implements ExecutableNode {
         return false;
     }
 
-    private GrandExchange.Box findPrimaryIngredientBuyingBox(){
-        for(GrandExchange.Box box: GrandExchange.Box.values()){
-            if(script.getGrandExchange().getItemId(box) == recipe.getFinishedItemID()){
-                return box;
-            }
-        }
-        return null;
-    }
-
     private GrandExchange.Box findFinishedProductSellingBox(){
         for(GrandExchange.Box box: GrandExchange.Box.values()){
-            if(script.getGrandExchange().getItemId(box) == recipe.getFinishedItemID()){
+            if(grandExchange.getItemId(box) == recipe.getProduct().getId()){
                 return box;
             }
         }
@@ -205,6 +190,6 @@ public class DecideRestockNode implements ExecutableNode {
 
     @Override
     public void logNode() {
-        script.log(this.getClass().getSimpleName());
+        log(this.getClass().getSimpleName());
     }
 }

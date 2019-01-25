@@ -1,24 +1,24 @@
 package Nodes.CreationNodes;
 
 import Util.Statics;
-import org.osbot.rs07.api.Inventory;
-import org.osbot.rs07.script.Script;
+import org.osbot.rs07.Bot;
 import org.osbot.rs07.utility.ConditionalSleep;
 
+/*
+After items are finished combining wait a bit before proceeding to bank
+ */
 public class AFKCreation extends AbstractCreationNode {
-    public AFKCreation(Script script) {
-        super(script);
+    public AFKCreation(Bot bot) {
+        super(bot);
     }
 
     @Override
     int waitForPotions() {
-        script.getMouse().moveOutsideScreen();
-
-        Inventory inv = script.getInventory();
+        mouse.moveOutsideScreen();
         new ConditionalSleep(25000) {
             @Override
             public boolean condition() throws InterruptedException {
-                return !inv.contains(recipe.getPrimaryItemName()) || !inv.contains(recipe.getSecondaryItemName());
+                return !inventory.contains(recipe.getPrimary()) || !inventory.contains(recipe.getSecondary());
             }
         }.sleep();
 
