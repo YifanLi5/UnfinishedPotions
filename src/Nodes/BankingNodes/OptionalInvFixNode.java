@@ -7,7 +7,6 @@ import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
 import Util.CombinationRecipes;
 import Util.Margins;
-import Util.Statics;
 import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.script.MethodProvider;
@@ -30,9 +29,7 @@ public class OptionalInvFixNode extends MethodProvider implements ExecutableNode
 
     @Override
     public boolean canExecute() throws InterruptedException {
-        if(Statics.logNodes){
-            logNode();
-        }
+        this.recipe = Margins.getInstance(bot).getCurrentRecipe();
         return inventory.getAmount(recipe.getPrimary()) != 14
                 || inventory.getAmount(recipe.getSecondary()) != 14;
     }

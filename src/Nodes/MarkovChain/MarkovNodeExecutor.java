@@ -1,7 +1,5 @@
 package Nodes.MarkovChain;
 
-import Util.Statics;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -29,9 +27,6 @@ public class MarkovNodeExecutor {
      */
     public int executeThenTraverse() throws InterruptedException {
         int onLoopSleepTime = 500;
-        if(Statics.logNodes){
-            Statics.script.log("current: " + current.getClass().getSimpleName());
-        }
         if(current.canExecute()){
             onLoopSleepTime = current.executeNode();
         }

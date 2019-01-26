@@ -1,10 +1,11 @@
 package Nodes.BankingNodes.Withdraw;
 
+import Util.Margins;
 import org.osbot.rs07.Bot;
 
 public class WithdrawSecondary extends AbstractWithdraw {
 
-    WithdrawSecondary(Bot bot) {
+    public WithdrawSecondary(Bot bot) {
         super(bot);
     }
 
@@ -15,6 +16,7 @@ public class WithdrawSecondary extends AbstractWithdraw {
 
     @Override
     public boolean canExecute() throws InterruptedException {
+        recipe = Margins.getInstance(bot).getCurrentRecipe();
         return !inventory.contains(recipe.getSecondary());
     }
 }

@@ -4,10 +4,8 @@ import Nodes.BankingNodes.DepositNode;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
 import Util.Margins;
-import Util.Statics;
 import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.GrandExchange;
-import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 import java.util.Collections;
@@ -17,12 +15,6 @@ public class IntermittentSell extends AbstractGENode implements ExecutableNode {
 
     public IntermittentSell(Bot bot) {
         super(bot);
-    }
-
-    @Override
-    public boolean canExecute() throws InterruptedException {
-        NPC clerk = npcs.closest("Grand Exchange Clerk");
-        return clerk != null && clerk.exists();
     }
 
     @Override

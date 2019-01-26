@@ -1,13 +1,14 @@
 package Nodes.BankingNodes.Withdraw;
 
-import Nodes.CreationNodes.*;
+import Nodes.CreationNodes.AFKCreation;
+import Nodes.CreationNodes.HoverBankerCreation;
+import Nodes.CreationNodes.PrematureStopCreation;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
 import Util.CombinationRecipes;
 import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.script.MethodProvider;
-
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,6 +31,7 @@ public abstract class AbstractWithdraw extends MethodProvider implements Executa
     );
 
     CombinationRecipes recipe;
+    boolean isJumping = false;
 
     AbstractWithdraw(Bot bot) {
         exchangeContext(bot);
@@ -37,9 +39,16 @@ public abstract class AbstractWithdraw extends MethodProvider implements Executa
 
     @Override
     public int executeNode() throws InterruptedException {
+        if(recipe == null){
+            log("recipe is null!");
+            bot.getScriptExecutor().stop(false);
+        }
+        if(!invOnlyHasRecipeItems()) {
+            isJumping = true;
+            return 0;
+        }
         if(bank.open() && bank.enableMode(Bank.BankMode.WITHDRAW_ITEM)){
-            if(withdrawItem())
-                return randomNormalDist(500, 100);
+            withdrawItem();
         }
         return 0;
     }
@@ -60,9 +69,18 @@ public abstract class AbstractWithdraw extends MethodProvider implements Executa
         }
     }
 
+    //sanity check for non recipe items are not in the inventory. Cannot proceed, or script will be stuck.
+    private boolean invOnlyHasRecipeItems(){
+        return inventory.onlyContains(item -> recipe.getPrimary().match(item) || recipe.getSecondary().match(item));
+    }
+
     //not used for this node
     @Override
     public boolean isJumping() {
+        if(isJumping) {
+            isJumping = false;
+            return true;
+        }
         return false;
     }
 

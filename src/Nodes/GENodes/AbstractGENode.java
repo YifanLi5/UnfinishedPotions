@@ -20,12 +20,12 @@ abstract class AbstractGENode extends MethodProvider implements ExecutableNode {
     AbstractGENode(Bot bot) {
         operations = GrandExchangeOperations.getInstance(bot);
         margins = Margins.getInstance(bot);
-        recipe = margins.getCurrentRecipe();
         exchangeContext(bot);
     }
 
     @Override
     public boolean canExecute() throws InterruptedException {
+        recipe = margins.getCurrentRecipe();
         NPC clerk = npcs.closest("Grand Exchange Clerk");
         return clerk != null && clerk.exists();
     }

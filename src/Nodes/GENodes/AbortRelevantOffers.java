@@ -5,7 +5,6 @@ import Nodes.MarkovChain.ExecutableNode;
 import Util.CombinationRecipes;
 import Util.GrandExchangeUtil.GrandExchangeOperations;
 import Util.Margins;
-import Util.Statics;
 import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.api.model.NPC;
@@ -22,11 +21,11 @@ public class AbortRelevantOffers extends MethodProvider implements ExecutableNod
     public AbortRelevantOffers(Bot bot){
         exchangeContext(bot);
         operations = GrandExchangeOperations.getInstance(bot);
-        this.recipe = Margins.getInstance(bot).getCurrentRecipe();
     }
 
     @Override
     public boolean canExecute() throws InterruptedException {
+        this.recipe = Margins.getInstance(bot).getCurrentRecipe();
         NPC clerk = npcs.closest("Grand Exchange Clerk");
         return clerk != null && clerk.exists();
     }
@@ -107,7 +106,7 @@ public class AbortRelevantOffers extends MethodProvider implements ExecutableNod
 
     @Override
     public List<Edge> getAdjacentNodes() {
-        return Collections.singletonList(new Edge(WaitUntilSell.class, 1));
+        return Collections.singletonList(new Edge(Sell.class, 1));
     }
 
     @Override

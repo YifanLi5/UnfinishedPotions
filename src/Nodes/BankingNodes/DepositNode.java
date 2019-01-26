@@ -2,7 +2,6 @@ package Nodes.BankingNodes;
 
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
-import Util.Statics;
 import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.api.ui.Option;
@@ -48,7 +47,7 @@ public class DepositNode extends MethodProvider implements ExecutableNode {
                     }
                 }.sleep();
                 if(deposited){
-                    return randomNormalDist(500, 250);
+                    return randomNormalDist(250, 100);
                 }
             }
 
@@ -59,7 +58,6 @@ public class DepositNode extends MethodProvider implements ExecutableNode {
     private boolean rightClickOpenBank() throws InterruptedException {
         widgets.getWidgets().closeOpenInterface();
         if(hoverOverBankOption()){
-            Statics.shortRandomNormalDelay();
             return mouse.click(false);
         }
         return false;
@@ -84,7 +82,6 @@ public class DepositNode extends MethodProvider implements ExecutableNode {
             }
         }
         if(found){
-            Statics.shortRandomNormalDelay();
             RectangleDestination bankOptionRect = new RectangleDestination(bot, menu.getOptionRectangle(idx));
             success = mouse.move(bankOptionRect);
         }
