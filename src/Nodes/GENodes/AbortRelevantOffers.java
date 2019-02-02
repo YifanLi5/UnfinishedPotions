@@ -1,5 +1,6 @@
 package Nodes.GENodes;
 
+import Nodes.BankingNodes.DepositNode;
 import Nodes.MarkovChain.Edge;
 import Nodes.MarkovChain.ExecutableNode;
 import Util.CombinationRecipes;
@@ -15,6 +16,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class AbortRelevantOffers extends MethodProvider implements ExecutableNode {
+    private boolean isJumping = false;
     private CombinationRecipes recipe;
     private GrandExchangeOperations operations;
 
@@ -48,8 +50,14 @@ public class AbortRelevantOffers extends MethodProvider implements ExecutableNod
                         return operations.collect(true);
                     }
                 }.sleep();
-                if(collected)
+                if(collected) {
                     log("aborted and/or collected offers for: " + recipe.getPrimary());
+                    int remainingPrimary = (int) inventory.getAmount(recipe.getPrimary());
+                    if(remainingPrimary > 0) {
+                        log("finishing up remaining " + remainingPrimary + " " + recipe.getPrimary().getName());
+                        isJumping = true;
+                    }
+                }
             }
         }
 
@@ -111,12 +119,16 @@ public class AbortRelevantOffers extends MethodProvider implements ExecutableNod
 
     @Override
     public boolean isJumping() {
+        if(isJumping){
+            isJumping = false;
+            return true;
+        }
         return false;
     }
 
     @Override
     public Class<? extends ExecutableNode> setJumpTarget() {
-        return null;
+        return DepositNode.class;
     }
 
     @Override

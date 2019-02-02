@@ -23,7 +23,7 @@ import static ScriptClasses.MainScript.SCRIPT_NAME;
 
 @ScriptManifest(author = "PayPalMeRSGP", name = SCRIPT_NAME, info = "item combiner, but mainly used for unf potions", version = 0.5, logo = "")
 public class MainScript extends Script {
-    static final String SCRIPT_NAME = "Unfinished_Alchemist v1.2.3";
+    static final String SCRIPT_NAME = "Unfinished_Alchemist v1.2.4";
     private MarkovNodeExecutor executor;
 
     @Override

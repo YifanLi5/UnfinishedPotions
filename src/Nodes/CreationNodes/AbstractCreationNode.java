@@ -9,7 +9,9 @@ import Util.Statics;
 import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.model.Item;
 import org.osbot.rs07.api.ui.RS2Widget;
+import org.osbot.rs07.api.util.Utilities;
 import org.osbot.rs07.script.MethodProvider;
+import org.osbot.rs07.script.Script;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 import java.util.*;
@@ -201,6 +203,18 @@ public abstract class AbstractCreationNode extends MethodProvider implements Exe
 
     //define what to do when waiting for potions to finish, returns the sleeptime for onloop.
     abstract int waitForPotions() throws InterruptedException;
+
+    //call in conditional sleep that waits for items to combine.
+    //return true to exit conditional sleep
+    boolean takeScreenShotOnLvl(){
+        Script script = bot.getScriptExecutor().getCurrent();
+        if(script.getDialogues().isPendingContinuation()){
+            script.log("Level UP! Taking screenshot.");
+            Utilities.takeScreenshot();
+            return true;
+        }
+        return false;
+    }
 
     @Override
     public boolean isJumping() {

@@ -51,57 +51,56 @@ public class DecideRestockNode extends MethodProvider implements ExecutableNode 
 
     @Override
     public int executeNode() throws InterruptedException {
-        if(Statics.logNodes){
-            logNode();
+        handleBreaking();
+        jumpTarget = null;
+        if(margin.getCurrentRecipe() == null && geOpsEnabled){
+            isJumping = true;
+            jumpTarget = InitialBuy.class;
         }
-        if(margin.getCurrentRecipe() != null){
+        else if(margin.getCurrentRecipe() != null){
             int primaryRemaining = (int) bank.getAmount(margin.getCurrentRecipe().getPrimary());
             int secondaryRemaining = (int) bank.getAmount(margin.getCurrentRecipe().getSecondary());
 
             //TODO: support restock of secondary
             if(secondaryRemaining < 14){
+                bot.getScriptExecutor().stop(false);
                 return -1;
             }
-
-            jumpTarget = null;
-
-            while(isBreakImminent()){
-                log("sleeping until break handler takes over");
-                sleep(10000);
-            }
-
-            if(margin.getCurrentRecipe() == null && geOpsEnabled){
+            else if(primaryRemaining < 1 && geOpsEnabled) {
                 isJumping = true;
-                jumpTarget = InitialBuy.class;
+                jumpTarget = AbortRelevantOffers.class;
             }
-            else if(primaryRemaining < 14){
-                if(geOpsEnabled){
-                    isJumping = true;
-                    jumpTarget = AbortRelevantOffers.class;
-                } else {
-                    //geOpsEnabled = false means time to clean up! Go through every clean herb and make unf potions.
-                    //when done, stop script.
-                    CombinationRecipes next = null;
-                    for(CombinationRecipes recipes: CombinationRecipes.values()){
-                        if(bank.contains(recipes.getPrimary())){
-                            next = recipes;
-                            break;
-                        }
-                    }
-                    if(next == null){
-                        log("all cleaned up!");
-                        return -1;
-                    } else {
-                        log("selected " + next + " as next");
-                        margin.setCurrentRecipe(next);
+            else {
+                //geOpsEnabled = false means time to clean up! Go through every clean herb and make unf potions.
+                //when done, stop script.
+                CombinationRecipes next = null;
+                for(CombinationRecipes recipes: CombinationRecipes.values()){
+                    if(bank.contains(recipes.getPrimary())){
+                        next = recipes;
+                        break;
                     }
                 }
+                if(next == null){
+                    log("all cleaned up!");
+                    return -1;
+                } else {
+                    log("selected " + next + " as next");
+                    margin.setCurrentRecipe(next);
+                }
             }
+
             if(jumpTarget != null)
                 log("jumping to: " + jumpTarget.getSimpleName());
 
         }
         return 0;
+    }
+
+    private void handleBreaking() throws InterruptedException {
+        while(isBreakImminent()){
+            log("sleeping until break handler takes over");
+            sleep(10000);
+        }
     }
 
     private boolean isBreakImminent(){

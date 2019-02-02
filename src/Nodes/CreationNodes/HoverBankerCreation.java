@@ -42,6 +42,7 @@ public class HoverBankerCreation extends AbstractCreationNode {
         NPC banker = (lastHoveredBanker == null || !lastHoveredBanker.exists()) ? npcs.closest("Banker") : lastHoveredBanker;
         boolean success = false;
         if(banker != null){
+            lastHoveredBanker = banker;
             boolean found = false;
             int idx = 0;
             int attempts = 0;
@@ -55,6 +56,9 @@ public class HoverBankerCreation extends AbstractCreationNode {
                                 break;
                             }
                         }
+                        //not found
+                        log("did not find bank option, retrying");
+                        mouse.moveOutsideScreen();
                     }
                 }
             }
