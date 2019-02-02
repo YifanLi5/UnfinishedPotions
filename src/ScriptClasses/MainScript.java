@@ -23,7 +23,7 @@ import static ScriptClasses.MainScript.SCRIPT_NAME;
 
 @ScriptManifest(author = "PayPalMeRSGP", name = SCRIPT_NAME, info = "item combiner, but mainly used for unf potions", version = 0.5, logo = "")
 public class MainScript extends Script {
-    static final String SCRIPT_NAME = "Unfinished_Potions v1.1.6";
+    static final String SCRIPT_NAME = "Unfinished_Alchemist v1.2.3";
     private MarkovNodeExecutor executor;
 
     @Override
@@ -37,6 +37,17 @@ public class MainScript extends Script {
 
     @Override
     public int onLoop() throws InterruptedException {
+        /*GrandExchangeOperations operations = GrandExchangeOperations.getInstance(bot);
+        operations.buyUpToLimit(CombinationRecipes.TOADFLAX_UNF_RECIPE.getPrimary(), 1, 1000);
+
+
+        Buy buy = new Buy(bot);
+        Margins.getInstance(bot).setCurrentRecipe(CombinationRecipes.TOADFLAX_UNF_RECIPE);
+        buy.canExecute();
+        boolean success = buy.resubmitHigherOffer(CombinationRecipes.TOADFLAX_UNF_RECIPE);
+        log(success);
+        return 5000;*/
+
         int sleepTime = executor.executeThenTraverse();
         if(sleepTime < 0){ //if any node returns -1, its time to stop script
             stop(false);

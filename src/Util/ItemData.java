@@ -33,7 +33,7 @@ public enum ItemData implements Filter<Item> {
     }
 
     public String getGESearchTerm() {
-        return name.trim().split(" ")[0];
+        return name.split(" ")[0].substring(0, 4).toLowerCase();
     }
 
     public String getName() {

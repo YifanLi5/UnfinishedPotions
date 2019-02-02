@@ -1,5 +1,6 @@
 package Nodes.BankingNodes.Withdraw;
 
+import Nodes.BankingNodes.DepositNode;
 import Nodes.CreationNodes.AFKCreation;
 import Nodes.CreationNodes.HoverBankerCreation;
 import Nodes.CreationNodes.PrematureStopCreation;
@@ -53,7 +54,7 @@ public abstract class AbstractWithdraw extends MethodProvider implements Executa
         return 0;
     }
 
-    abstract boolean withdrawItem();
+    abstract void withdrawItem();
 
     @Override
     public List<Edge> getAdjacentNodes() {
@@ -86,7 +87,7 @@ public abstract class AbstractWithdraw extends MethodProvider implements Executa
 
     @Override
     public Class<? extends ExecutableNode> setJumpTarget() {
-        return null;
+        return DepositNode.class;
     }
 
     @Override

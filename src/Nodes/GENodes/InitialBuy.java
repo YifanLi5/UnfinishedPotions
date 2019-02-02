@@ -8,7 +8,7 @@ import org.osbot.rs07.Bot;
 import java.util.Collections;
 import java.util.List;
 
-public class InitialBuy extends WaitUntilBuy {
+public class InitialBuy extends Buy {
 
     public InitialBuy(Bot bot) {
         super(bot);
@@ -21,7 +21,7 @@ public class InitialBuy extends WaitUntilBuy {
             margins.setCurrentRecipe(recipe);
             int[] margin = margins.getCachedPrimaryIngredientMargin(recipe);
             if(operations.buyUpToLimit(recipe.getPrimary(), margin[1], 1000)){
-                waitForBuy();
+                waitForBuy(recipe);
                 if(operations.collect()){
                     log("collected bought items");
                     return 1000;

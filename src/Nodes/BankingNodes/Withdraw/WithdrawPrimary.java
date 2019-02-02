@@ -9,8 +9,8 @@ public class WithdrawPrimary extends AbstractWithdraw {
     }
 
     @Override
-    boolean withdrawItem() {
-        return bank.withdraw(recipe.getPrimary(), 14);
+    void withdrawItem() {
+        bank.withdraw(recipe.getPrimary(), 14);
     }
 
     @Override

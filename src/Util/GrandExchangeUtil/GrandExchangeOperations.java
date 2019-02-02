@@ -1,7 +1,6 @@
 package Util.GrandExchangeUtil;
 
 import Util.ItemData;
-import Util.Statics;
 import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.GrandExchange;
@@ -188,14 +187,9 @@ public class GrandExchangeOperations extends GrandExchange {
      * @return true if successful
      */
     public boolean abortOffersWithItem(String itemName) throws InterruptedException {
+        log("debugging abort offers with item");
         if(openGE()){
-            boolean collected = new ConditionalSleep(5000){
-                @Override
-                public boolean condition() throws InterruptedException {
-                    return collect();
-                }
-            }.sleep();
-            Statics.longRandomNormalDelay();
+            sleep(1000); //polling for widgets too soon may result in erroneous results.
             List<RS2Widget> pendingOffers = getWidgets().containingText(465, itemName);
             if(pendingOffers != null && pendingOffers.size() > 0){
                 WidgetDestination offerDestination;
@@ -209,14 +203,21 @@ public class GrandExchangeOperations extends GrandExchange {
                             }
                         }.sleep();
                         if(open){
-                            if(menu.selectAction("Abort offer")){
-                                sleep(1000);
+                            if(menu.getMenuCount() == 2 || menu.selectAction("Abort offer")){ //only 2 options means offer is already canceled or completed
+                                sleep(2000);
+                                return new ConditionalSleep(2000) {
+                                    @Override
+                                    public boolean condition() throws InterruptedException {
+                                        return collect();
+                                    }
+                                }.sleep();
                             }
                         }
                     }
                 }
                 return true;
-            } else return collected && pendingOffers == null; //if the offer is 100% complete collecting is also the same as aborting
+            } else return pendingOffers == null || collect(); //if the offer doesn't exist then count aborting it a success. If the offer is finished collecting it is also ok.
+
         }
         return false;
     }

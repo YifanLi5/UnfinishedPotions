@@ -6,15 +6,14 @@ import Util.Margins;
 import org.osbot.rs07.Bot;
 import org.osbot.rs07.api.GrandExchange;
 import org.osbot.rs07.api.model.NPC;
-import org.osbot.rs07.script.MethodProvider;
 import org.osbot.rs07.utility.ConditionalSleep;
 
 import java.util.Collections;
 import java.util.List;
 
-public class WaitUntilSell extends AbstractGENode implements ExecutableNode {
+public class Sell extends AbstractGENode implements ExecutableNode {
 
-    public WaitUntilSell(Bot bot) {
+    public Sell(Bot bot) {
         super(bot);
     }
 
@@ -107,11 +106,8 @@ public class WaitUntilSell extends AbstractGENode implements ExecutableNode {
         int newSell = margins.findFinishedProductMargin(recipe)[0];
         log("decreasing offer to " + newSell);
         if(operations.abortOffersWithItem(recipe.getProduct())){
-            MethodProvider.sleep(1000);
-            if(operations.collect()){
-                MethodProvider.sleep(1000);
-                return operations.sellAll(recipe.getProduct(), newSell);
-            }
+            return operations.sellAll(recipe.getProduct(), newSell);
+
         }
         return false;
     }
@@ -141,7 +137,7 @@ public class WaitUntilSell extends AbstractGENode implements ExecutableNode {
 
     @Override
     public List<Edge> getAdjacentNodes() {
-        return Collections.singletonList(new Edge(WaitUntilBuy.class, 1));
+        return Collections.singletonList(new Edge(Buy.class, 1));
     }
 
     @Override

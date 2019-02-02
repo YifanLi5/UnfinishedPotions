@@ -10,8 +10,8 @@ public class WithdrawSecondary extends AbstractWithdraw {
     }
 
     @Override
-    boolean withdrawItem() {
-        return bank.withdraw(recipe.getSecondary(), 14);
+    void withdrawItem() {
+        bank.withdraw(recipe.getSecondary(), 14);
     }
 
     @Override
